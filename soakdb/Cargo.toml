@@ -13,7 +13,7 @@ readme = "../README.md"
 graphql-models = ["async-graphql"]
 
 [dependencies]
-chrono = { version = "0.4.24", default-features = false }
+chrono = { version = "0.4.25", default-features = false }
 chrono-tz = { version = "0.8.2" }
 derive_more = { version = "0.99.17" }
 sea-orm = { version = "0.11.2", default-features = false, features = [
