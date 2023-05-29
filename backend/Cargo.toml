@@ -16,6 +16,6 @@ axum = { version = "0.6.15", features = ["ws", "headers"] }
 clap = { version = "4.3.0", features = ["derive"] }
 derive_more = { version = "0.99.17" }
 soakdb = { path = "../soakdb", features = ["graphql-models"] }
-tokio = { version = "1.27.0", features = ["rt-multi-thread", "macros"] }
+tokio = { version = "1.28.2", features = ["rt-multi-thread", "macros"] }
 tracing = { version = "0.1.37" }
 tracing-subscriber = { version = "0.3.17", features = ["env-filter"] }
