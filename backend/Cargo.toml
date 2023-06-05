@@ -12,10 +12,12 @@ readme = "../README.md"
 [dependencies]
 async-graphql = { version = "5.0.10", features = ["uuid", "tracing", "chrono"] }
 async-graphql-axum = { version = "5.0.9" }
+auth = { path = "../auth" }
 axum = { version = "0.6.15", features = ["ws", "headers"] }
 chrono = { version = "0.4.26", default-features = false }
 clap = { version = "4.3.3", features = ["derive"] }
 derive_more = { version = "0.99.17" }
+dotenvy = { version = "0.15.7" }
 itertools = { version = "0.10.5" }
 soakdb = { path = "../soakdb" }
 tokio = { version = "1.28.2", features = ["rt-multi-thread", "macros"] }

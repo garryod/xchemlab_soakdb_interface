@@ -6,6 +6,7 @@ pub mod models;
 use api::{schema_builder, RootSchema};
 use async_graphql::{extensions::Tracing, http::GraphiQLSource, Schema};
 use async_graphql_axum::{GraphQLRequest, GraphQLResponse, GraphQLSubscription};
+use auth::{create_oidc_client, get_authentication_url};
 use axum::{
     response::{Html, IntoResponse},
     routing::get,
@@ -82,6 +83,7 @@ struct SchemaArgs {
 
 #[tokio::main]
 async fn main() {
+    dotenvy::dotenv().ok();
     let args = Cli::parse();
 
     let tracing_subscriber = tracing_subscriber::FmtSubscriber::builder()
@@ -93,6 +95,10 @@ async fn main() {
         Cli::Serve(args) => {
             let schema = setup_api();
             let router = setup_router(schema);
+            let auth_client = create_oidc_client()
+                .await
+                .expect("Failed to setup authentication client");
+            println!("Authenticate at {}", get_authentication_url(auth_client));
             serve(router, args.port).await;
         }
         Cli::Schema(args) => {
