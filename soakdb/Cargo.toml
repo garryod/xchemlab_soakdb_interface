@@ -10,7 +10,7 @@ homepage = "https://github.com/garryod/xchemlab_soakdb_interface"
 readme = "../README.md"
 
 [dependencies]
-chrono = { version = "0.4.25", default-features = false }
+chrono = { version = "0.4.26", default-features = false }
 chrono-tz = { version = "0.8.2" }
 derive_more = { version = "0.99.17" }
 lexical = { version = "6.1.1" }
