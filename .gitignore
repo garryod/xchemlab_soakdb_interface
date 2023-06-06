@@ -3,3 +3,6 @@
 
 # Test Data
 /test_data
+
+# Environment Variables
+.env
