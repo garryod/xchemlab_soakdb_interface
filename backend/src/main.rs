@@ -36,6 +36,10 @@ async fn graphql_handler(schema: Extension<RootSchema>, req: GraphQLRequest) -> 
     schema.execute(req.into_inner()).await.into()
 }
 
+async fn schema_handler(schema: Extension<RootSchema>) -> impl IntoResponse {
+    schema.sdl()
+}
+
 fn setup_router<Q, M, S>(schema: Schema<Q, M, S>) -> Router
 where
     Q: async_graphql::ObjectType + 'static,
@@ -45,6 +49,7 @@ where
     Router::new()
         .route("/", get(graphiql).post(graphql_handler))
         .route_service("/ws", GraphQLSubscription::new(schema.clone()))
+        .route("/schema", get(schema_handler))
         .layer(Extension(schema))
 }
 
