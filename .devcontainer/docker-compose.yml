@@ -9,6 +9,17 @@ services:
       - ..:/workspace:z
     command: sleep infinity
 
+  opa:
+    image: docker.io/openpolicyagent/opa:0.53.1-envoy
+    volumes:
+      - ../policies:/policies:z
+    command:
+      - run
+      - --server
+      - --set=plugins.envoy_ext_authz_grpc.enabled=true
+      - --watch
+      - /policies
+
   envoy:
     image: docker.io/envoyproxy/envoy:v1.26.2
     volumes:
