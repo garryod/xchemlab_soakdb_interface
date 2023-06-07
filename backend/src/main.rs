@@ -8,7 +8,7 @@ use async_graphql::{extensions::Tracing, http::GraphiQLSource, Schema};
 use async_graphql_axum::{GraphQLRequest, GraphQLResponse, GraphQLSubscription};
 use axum::{
     response::{Html, IntoResponse},
-    routing::get,
+    routing::{get, post},
     Extension, Router, Server,
 };
 use clap::Parser;
@@ -19,6 +19,11 @@ use std::{
     path::PathBuf,
 };
 
+const GRAPHQL_PATH: &str = "/graphql";
+const GRAPHQL_SUBSCRIPTION_PATH: &str = "/graphql/ws";
+const GRAPHIQL_PATH: &str = "/";
+const SCHEMA_PATH: &str = "/schema";
+
 fn setup_api() -> RootSchema {
     schema_builder().extension(Tracing).finish()
 }
@@ -26,8 +31,8 @@ fn setup_api() -> RootSchema {
 async fn graphiql() -> impl IntoResponse {
     Html(
         GraphiQLSource::build()
-            .endpoint("/")
-            .subscription_endpoint("/ws")
+            .endpoint(GRAPHQL_PATH)
+            .subscription_endpoint(GRAPHQL_SUBSCRIPTION_PATH)
             .finish(),
     )
 }
@@ -47,15 +52,19 @@ where
     S: async_graphql::SubscriptionType + 'static,
 {
     Router::new()
-        .route("/", get(graphiql).post(graphql_handler))
-        .route_service("/ws", GraphQLSubscription::new(schema.clone()))
-        .route("/schema", get(schema_handler))
+        .route(GRAPHIQL_PATH, get(graphiql))
+        .route(GRAPHQL_PATH, post(graphql_handler))
+        .route_service(
+            GRAPHQL_SUBSCRIPTION_PATH,
+            GraphQLSubscription::new(schema.clone()),
+        )
+        .route(SCHEMA_PATH, get(schema_handler))
         .layer(Extension(schema))
 }
 
 async fn serve(router: Router, port: u16) {
     let socket_addr: SocketAddr = SocketAddr::V4(SocketAddrV4::new(Ipv4Addr::UNSPECIFIED, port));
-    println!("GraphiQL IDE: {}", socket_addr);
+    println!("GraphiQL IDE: {}{}", socket_addr, GRAPHIQL_PATH);
     Server::bind(&socket_addr)
         .serve(router.into_make_service())
         .await
