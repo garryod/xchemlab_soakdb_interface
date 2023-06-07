@@ -1,0 +1,21 @@
+version: "3.8"
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - ..:/workspace:z
+    command: sleep infinity
+
+  envoy:
+    image: docker.io/envoyproxy/envoy:v1.26.2
+    volumes:
+      - ./envoy.yaml:/config/envoy.yaml:z
+    ports:
+      - 8080:80
+    environment:
+      ENVOY_UID: 0
+    command:
+      - --config-path /config/envoy.yaml
