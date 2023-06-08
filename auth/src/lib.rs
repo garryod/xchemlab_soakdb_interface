@@ -1,10 +1,15 @@
 use openidconnect::{
-    core::{CoreClient, CoreProviderMetadata, CoreResponseType},
+    core::{
+        CoreClient, CoreErrorResponseType, CoreProviderMetadata, CoreResponseType,
+        CoreTokenIntrospectionResponse,
+    },
     reqwest::async_http_client,
     url::{ParseError, Url},
-    AuthenticationFlow, ClientId, ClientSecret, CsrfToken, IssuerUrl, Nonce, RedirectUrl,
+    AccessToken, AuthenticationFlow, ClientId, ClientSecret, ConfigurationError, CsrfToken,
+    IssuerUrl, Nonce, RedirectUrl, RequestTokenError, StandardErrorResponse,
+    TokenIntrospectionResponse,
 };
-use std::env::{self, VarError};
+use std::env;
 
 const ISSUER_URL_ENV_VAR: &str = "OIDC_ISSUER_URL";
 const CLIENT_ID_ENV_VAR: &str = "OIDC_CLIENT_ID";
@@ -14,7 +19,7 @@ const REDIRECT_URL_ENV_VAR: &str = "OIDC_REDIRECT_URL";
 #[derive(Debug, thiserror::Error)]
 pub enum AuthClientError {
     #[error("Could not read required environment variable")]
-    UnreadableEnvironmentVariable(#[from] VarError),
+    UnreadableEnvironmentVariable(#[from] env::VarError),
     #[error("Could not parse URL")]
     UnparsableUrl(#[from] ParseError),
 }
@@ -46,4 +51,34 @@ pub fn get_authentication_url(client: &CoreClient) -> Url {
         )
         .url()
         .0
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum TokenVerificationError {
+    #[error("OIDC Client is misconfigured")]
+    ConfigurationError(#[from] ConfigurationError),
+    #[error("Access Token request failed")]
+    RequestTokenError(
+        #[from]
+        RequestTokenError<
+            openidconnect::reqwest::Error<reqwest::Error>,
+            StandardErrorResponse<CoreErrorResponseType>,
+        >,
+    ),
+    #[error("Access Token is inactive")]
+    Inactive,
+}
+
+pub async fn verify_access_token(
+    token: &AccessToken,
+    client: &CoreClient,
+) -> Result<CoreTokenIntrospectionResponse, TokenVerificationError> {
+    let token_claims = client
+        .introspect(token)?
+        .request_async(async_http_client)
+        .await?;
+    if !token_claims.active() {
+        return Err(TokenVerificationError::Inactive);
+    }
+    Ok(token_claims)
 }
