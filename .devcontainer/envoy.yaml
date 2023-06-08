@@ -21,6 +21,10 @@ static_resources:
                           stat_prefix: ext_authz
                         timeout: 0.5s
                       transport_api_version: V3
+                      with_request_body:
+                        max_request_bytes: 1048576
+                        allow_partial_message: false
+                        pack_as_bytes: false
                   - name: envoy.filters.http.router
                     typed_config:
                       "@type": type.googleapis.com/envoy.extensions.filters.http.router.v3.Router
