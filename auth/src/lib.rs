@@ -1,14 +1,15 @@
 pub mod middleware;
 
+pub use openidconnect::core::CoreClient;
 use openidconnect::{
     core::{
-        CoreClient, CoreErrorResponseType, CoreProviderMetadata, CoreResponseType,
+        CoreErrorResponseType, CoreProviderMetadata, CoreResponseType,
         CoreTokenIntrospectionResponse,
     },
     reqwest::async_http_client,
     url::{ParseError, Url},
     AccessToken, AuthenticationFlow, ClientId, ClientSecret, ConfigurationError, CsrfToken,
-    IssuerUrl, Nonce, RedirectUrl, RequestTokenError, StandardErrorResponse,
+    IntrospectionUrl, IssuerUrl, Nonce, RedirectUrl, RequestTokenError, StandardErrorResponse,
     TokenIntrospectionResponse,
 };
 use std::env;
@@ -16,6 +17,7 @@ use std::env;
 const ISSUER_URL_ENV_VAR: &str = "OIDC_ISSUER_URL";
 const CLIENT_ID_ENV_VAR: &str = "OIDC_CLIENT_ID";
 const CLIENT_SECRET_ENV_VAR: &str = "OIDC_CLIENT_SECRET";
+const INTROSPECTION_URL_ENV_VAR: &str = "ACCESS_TOKEN_INTROSPECTION_URL";
 const REDIRECT_URL_ENV_VAR: &str = "OIDC_REDIRECT_URL";
 
 #[derive(Debug, thiserror::Error)]
@@ -35,10 +37,12 @@ pub async fn create_oidc_client() -> Result<CoreClient, AuthClientError> {
     let client_id = ClientId::new(env::var(CLIENT_ID_ENV_VAR)?);
     let client_secret = Some(ClientSecret::new(env::var(CLIENT_SECRET_ENV_VAR)?));
 
+    let introspection_url = IntrospectionUrl::new(env::var(INTROSPECTION_URL_ENV_VAR)?)?;
     let redirect_url = RedirectUrl::new(env::var(REDIRECT_URL_ENV_VAR)?)?;
 
     Ok(
         CoreClient::from_provider_metadata(provider_metadata, client_id, client_secret)
+            .set_introspection_uri(introspection_url)
             .set_redirect_uri(redirect_url),
     )
 }

@@ -4,13 +4,14 @@ pub mod api;
 pub mod models;
 
 use api::{schema_builder, RootSchema};
-use async_graphql::{extensions::Tracing, http::GraphiQLSource, Schema};
+use async_graphql::{extensions::Tracing, http::GraphiQLSource};
 use async_graphql_axum::{GraphQLRequest, GraphQLResponse, GraphQLSubscription};
-use auth::{create_oidc_client, get_authentication_url};
+use auth::{create_oidc_client, get_authentication_url, middleware::ExtractAuthToken, CoreClient};
 use axum::{
+    extract::{FromRef, State},
     response::{Html, IntoResponse},
     routing::get,
-    Extension, Router, Server,
+    Router, Server,
 };
 use clap::Parser;
 use std::{
@@ -33,20 +34,30 @@ async fn graphiql() -> impl IntoResponse {
     )
 }
 
-async fn graphql_handler(schema: Extension<RootSchema>, req: GraphQLRequest) -> GraphQLResponse {
-    schema.execute(req.into_inner()).await.into()
+async fn graphql_handler(
+    State(schema): State<RootSchema>,
+    token: ExtractAuthToken,
+    req: GraphQLRequest,
+) -> GraphQLResponse {
+    let mut request = req.into_inner();
+    request.data.insert(token.into_inner().ok());
+    schema.execute(request).await.into()
 }
 
-fn setup_router<Q, M, S>(schema: Schema<Q, M, S>) -> Router
-where
-    Q: async_graphql::ObjectType + 'static,
-    M: async_graphql::ObjectType + 'static,
-    S: async_graphql::SubscriptionType + 'static,
-{
+#[derive(Clone, FromRef)]
+struct AppState {
+    authn_client: CoreClient,
+    schema: RootSchema,
+}
+
+fn setup_router(schema: RootSchema, authn_client: CoreClient) -> Router {
     Router::new()
         .route("/", get(graphiql).post(graphql_handler))
         .route_service("/ws", GraphQLSubscription::new(schema.clone()))
-        .layer(Extension(schema))
+        .with_state(AppState {
+            authn_client,
+            schema,
+        })
 }
 
 async fn serve(router: Router, port: u16) {
@@ -94,11 +105,11 @@ async fn main() {
     match args {
         Cli::Serve(args) => {
             let schema = setup_api();
-            let router = setup_router(schema);
-            let auth_client = create_oidc_client()
+            let authn_client = create_oidc_client()
                 .await
                 .expect("Failed to setup authentication client");
-            println!("Authenticate at {}", get_authentication_url(auth_client));
+            println!("Authenticate at {}", get_authentication_url(&authn_client));
+            let router = setup_router(schema, authn_client);
             serve(router, args.port).await;
         }
         Cli::Schema(args) => {

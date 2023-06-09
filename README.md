@@ -11,6 +11,7 @@ The following environment variables are expected when running the `serve` subcom
 - `OIDC_CLIENT_ID` - The issued OpenID Connect 'Client ID' for this application
 - `OIDC_CLIENT_SECRET` - The issued OpenID Connect 'Client Secret' for this application
 - `OIDC_REDIRECT_URL` - The URL of your frontend application
+- `ACCESS_TOKEN_INTROSPECTION_URL` - The URL used to introspect access tokens.
 
 ## Test Data
 
