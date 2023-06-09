@@ -1,3 +1,5 @@
+pub mod middleware;
+
 use openidconnect::{
     core::{
         CoreClient, CoreErrorResponseType, CoreProviderMetadata, CoreResponseType,

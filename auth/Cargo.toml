@@ -10,6 +10,7 @@ homepage = "https://github.com/garryod/xchemlab_soakdb_interface"
 readme = "../README.md"
 
 [dependencies]
+axum = { version = "0.6.18" }
 openidconnect = { version = "3.1.1", default-features = false, features = [
     "reqwest",
     "native-tls",
