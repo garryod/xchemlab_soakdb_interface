@@ -1,3 +1,4 @@
+pub mod authorization;
 pub mod middleware;
 
 pub use openidconnect::core::CoreClient;

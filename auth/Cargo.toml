@@ -11,9 +11,12 @@ readme = "../README.md"
 
 [dependencies]
 axum = { version = "0.6.18" }
+derive_more = { version = "0.99.17" }
 openidconnect = { version = "3.1.1", default-features = false, features = [
     "reqwest",
     "native-tls",
 ] }
-reqwest = { version = "0.11.18" }
+reqwest = { version = "0.11.18", features = ["json"] }
+serde = { version = "1.0.164" }
 thiserror = { version = "1.0.40" }
+url = { version = "2.4.0" }

@@ -6,7 +6,10 @@ pub mod models;
 use api::{schema_builder, RootSchema};
 use async_graphql::{extensions::Tracing, http::GraphiQLSource};
 use async_graphql_axum::{GraphQLRequest, GraphQLResponse, GraphQLSubscription};
-use auth::{create_oidc_client, get_authentication_url, middleware::ExtractAuthToken, CoreClient};
+use auth::{
+    authorization::OPAClient, create_oidc_client, get_authentication_url,
+    middleware::ExtractAuthToken, CoreClient,
+};
 use axum::{
     extract::{FromRef, State},
     response::{Html, IntoResponse},
@@ -20,6 +23,7 @@ use std::{
     net::{Ipv4Addr, SocketAddr, SocketAddrV4},
     path::PathBuf,
 };
+use url::Url;
 
 fn setup_api() -> RootSchema {
     schema_builder().extension(Tracing).finish()
@@ -36,26 +40,34 @@ async fn graphiql() -> impl IntoResponse {
 
 async fn graphql_handler(
     State(schema): State<RootSchema>,
+    State(authz_client): State<OPAClient>,
     token: ExtractAuthToken,
     req: GraphQLRequest,
 ) -> GraphQLResponse {
-    let mut request = req.into_inner();
-    request.data.insert(token.into_inner().ok());
-    schema.execute(request).await.into()
+    schema
+        .execute(
+            req.into_inner()
+                .data(token.into_inner().ok())
+                .data(authz_client),
+        )
+        .await
+        .into()
 }
 
 #[derive(Clone, FromRef)]
 struct AppState {
     authn_client: CoreClient,
+    authz_client: OPAClient,
     schema: RootSchema,
 }
 
-fn setup_router(schema: RootSchema, authn_client: CoreClient) -> Router {
+fn setup_router(schema: RootSchema, authn_client: CoreClient, authz_client: OPAClient) -> Router {
     Router::new()
         .route("/", get(graphiql).post(graphql_handler))
         .route_service("/ws", GraphQLSubscription::new(schema.clone()))
         .with_state(AppState {
             authn_client,
+            authz_client,
             schema,
         })
 }
@@ -83,6 +95,9 @@ struct ServeArgs {
     /// The port number to serve on.
     #[arg(short, long, default_value_t = 80)]
     port: u16,
+    /// The URL of an Open Policy Agent instance serving the required policy endpoints.
+    #[arg(long)]
+    opa_url: Url,
 }
 
 #[derive(Debug, Parser)]
@@ -108,8 +123,9 @@ async fn main() {
             let authn_client = create_oidc_client()
                 .await
                 .expect("Failed to setup authentication client");
+            let authz_client = OPAClient::new(args.opa_url);
             println!("Authenticate at {}", get_authentication_url(&authn_client));
-            let router = setup_router(schema, authn_client);
+            let router = setup_router(schema, authn_client, authz_client);
             serve(router, args.port).await;
         }
         Cli::Schema(args) => {
