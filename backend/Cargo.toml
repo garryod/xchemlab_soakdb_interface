@@ -10,7 +10,7 @@ homepage = "https://github.com/garryod/xchemlab_soakdb_interface"
 readme = "../README.md"
 
 [dependencies]
-async-graphql = { version = "5.0.9", features = ["uuid", "tracing", "chrono"] }
+async-graphql = { version = "5.0.10", features = ["uuid", "tracing", "chrono"] }
 async-graphql-axum = { version = "5.0.9" }
 axum = { version = "0.6.15", features = ["ws", "headers"] }
 chrono = { version = "0.4.26", default-features = false }
