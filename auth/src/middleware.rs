@@ -1,4 +1,3 @@
-use crate::{verify_access_token, TokenVerificationError};
 use axum::{
     async_trait,
     extract::{FromRef, FromRequestParts},
@@ -6,10 +5,9 @@ use axum::{
     http::request::Parts,
     TypedHeader,
 };
-use openidconnect::{
-    core::{CoreClient, CoreTokenIntrospectionResponse},
-    AccessToken,
-};
+use openidconnect::{core::CoreTokenIntrospectionResponse, AccessToken};
+
+use crate::authentication::{OIDCClient, TokenVerificationError};
 
 #[derive(Debug, thiserror::Error)]
 pub enum AuthTokenExtractionError {
@@ -32,7 +30,7 @@ impl ExtractAuthToken {
 impl<S> FromRequestParts<S> for ExtractAuthToken
 where
     S: Send + Sync,
-    CoreClient: FromRef<S>,
+    OIDCClient: FromRef<S>,
 {
     type Rejection = ();
 
@@ -43,11 +41,10 @@ where
                     TypedHeader::<Authorization<Bearer>>::from_request_parts(parts, state)
                         .await
                         .map_err(|_| AuthTokenExtractionError::Unavailable)?;
-                let client = CoreClient::from_ref(state);
-                Ok(
-                    verify_access_token(&AccessToken::new(token.token().to_string()), &client)
-                        .await?,
-                )
+                let client = OIDCClient::from_ref(state);
+                Ok(client
+                    .verify_access_token(&AccessToken::new(token.token().to_string()))
+                    .await?)
             }
             .await,
         ))

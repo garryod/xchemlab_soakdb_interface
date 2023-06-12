@@ -6,10 +6,7 @@ pub mod models;
 use api::{schema_builder, RootSchema};
 use async_graphql::{extensions::Tracing, http::GraphiQLSource};
 use async_graphql_axum::{GraphQLRequest, GraphQLResponse, GraphQLSubscription};
-use auth::{
-    authorization::OPAClient, create_oidc_client, get_authentication_url,
-    middleware::ExtractAuthToken, CoreClient,
-};
+use auth::{authentication::OIDCClient, authorization::OPAClient, middleware::ExtractAuthToken};
 use axum::{
     extract::{FromRef, State},
     response::{Html, IntoResponse},
@@ -56,12 +53,12 @@ async fn graphql_handler(
 
 #[derive(Clone, FromRef)]
 struct AppState {
-    authn_client: CoreClient,
+    authn_client: OIDCClient,
     authz_client: OPAClient,
     schema: RootSchema,
 }
 
-fn setup_router(schema: RootSchema, authn_client: CoreClient, authz_client: OPAClient) -> Router {
+fn setup_router(schema: RootSchema, authn_client: OIDCClient, authz_client: OPAClient) -> Router {
     Router::new()
         .route("/", get(graphiql).post(graphql_handler))
         .route_service("/ws", GraphQLSubscription::new(schema.clone()))
@@ -83,6 +80,7 @@ async fn serve(router: Router, port: u16) {
 
 #[derive(Debug, Parser)]
 #[command(author, version, about, long_about = None)]
+#[allow(clippy::large_enum_variant)]
 enum Cli {
     /// Starts a webserver serving the GraphQL API
     Serve(ServeArgs),
@@ -96,8 +94,23 @@ struct ServeArgs {
     #[arg(short, long, default_value_t = 80)]
     port: u16,
     /// The URL of an Open Policy Agent instance serving the required policy endpoints.
-    #[arg(long)]
+    #[arg(long, env)]
     opa_url: Url,
+    /// The URL of the OpenID Connect authentiation service.
+    #[arg(long, env)]
+    oidc_issuer_url: Url,
+    /// The OpenID Connect Client ID of this application.
+    #[arg(long, env)]
+    oidc_client_id: String,
+    /// The OpenID Connect Client Secret of this application.
+    #[arg(long, env)]
+    oidc_client_secret: Option<String>,
+    /// The URL to redirect the user to after OpenID Connect authentication.
+    #[arg(long, env)]
+    oidc_redirect_url: Url,
+    /// The URL of an Access Token introspection endpoint.
+    #[arg(long, env)]
+    access_token_introspection_url: Url,
 }
 
 #[derive(Debug, Parser)]
@@ -120,11 +133,19 @@ async fn main() {
     match args {
         Cli::Serve(args) => {
             let schema = setup_api();
-            let authn_client = create_oidc_client()
-                .await
-                .expect("Failed to setup authentication client");
+            let authn_client = OIDCClient::new(
+                args.oidc_issuer_url,
+                &args.oidc_client_id,
+                args.oidc_client_secret.as_ref(),
+                args.access_token_introspection_url,
+            )
+            .await
+            .unwrap();
             let authz_client = OPAClient::new(args.opa_url);
-            println!("Authenticate at {}", get_authentication_url(&authn_client));
+            println!(
+                "Authenticate at {}",
+                authn_client.authentication_url(args.oidc_redirect_url)
+            );
             let router = setup_router(schema, authn_client, authz_client);
             serve(router, args.port).await;
         }
