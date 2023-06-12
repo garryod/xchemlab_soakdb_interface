@@ -1,0 +1,20 @@
+version: "3.8"
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - ..:/workspace:z
+    command: sleep infinity
+
+  opa:
+    image: docker.io/openpolicyagent/opa:0.53.1
+    volumes:
+      - ../policies:/policies:z
+    command:
+      - run
+      - --server
+      - --watch
+      - /policies
