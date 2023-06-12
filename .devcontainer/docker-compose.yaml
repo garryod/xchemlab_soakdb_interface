@@ -8,6 +8,8 @@ services:
     volumes:
       - ..:/workspace:z
     command: sleep infinity
+    environment:
+      - OPA_URL=http://opa:8181
 
   opa:
     image: docker.io/openpolicyagent/opa:0.53.1
@@ -18,3 +20,5 @@ services:
       - --server
       - --watch
       - /policies
+    env_file:
+      - .env

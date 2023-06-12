@@ -6,14 +6,15 @@ pub mod models;
 use api::{schema_builder, RootSchema};
 use async_graphql::{extensions::Tracing, http::GraphiQLSource};
 use async_graphql_axum::{GraphQLRequest, GraphQLResponse, GraphQLSubscription};
-use auth::{authentication::OIDCClient, authorization::OPAClient, middleware::ExtractAuthToken};
 use axum::{
     extract::{FromRef, State},
+    headers::{authorization::Bearer, Authorization},
     response::{Html, IntoResponse},
     routing::get,
-    Router, Server,
+    Router, Server, TypedHeader,
 };
 use clap::Parser;
+use opa_client::{AuthorizationToken, OPAClient};
 use std::{
     fs::File,
     io::Write,
@@ -38,35 +39,28 @@ async fn graphiql() -> impl IntoResponse {
 async fn graphql_handler(
     State(schema): State<RootSchema>,
     State(authz_client): State<OPAClient>,
-    token: ExtractAuthToken,
+    authorization_header: Option<TypedHeader<Authorization<Bearer>>>,
     req: GraphQLRequest,
 ) -> GraphQLResponse {
+    let token =
+        AuthorizationToken::from(authorization_header.map(|header| header.token().to_string()));
     schema
-        .execute(
-            req.into_inner()
-                .data(token.into_inner().ok())
-                .data(authz_client),
-        )
+        .execute(req.into_inner().data(token).data(authz_client))
         .await
         .into()
 }
 
 #[derive(Clone, FromRef)]
 struct AppState {
-    authn_client: OIDCClient,
-    authz_client: OPAClient,
+    opa_client: OPAClient,
     schema: RootSchema,
 }
 
-fn setup_router(schema: RootSchema, authn_client: OIDCClient, authz_client: OPAClient) -> Router {
+fn setup_router(schema: RootSchema, opa_client: OPAClient) -> Router {
     Router::new()
         .route("/", get(graphiql).post(graphql_handler))
         .route_service("/ws", GraphQLSubscription::new(schema.clone()))
-        .with_state(AppState {
-            authn_client,
-            authz_client,
-            schema,
-        })
+        .with_state(AppState { opa_client, schema })
 }
 
 async fn serve(router: Router, port: u16) {
@@ -96,21 +90,6 @@ struct ServeArgs {
     /// The URL of an Open Policy Agent instance serving the required policy endpoints.
     #[arg(long, env)]
     opa_url: Url,
-    /// The URL of the OpenID Connect authentiation service.
-    #[arg(long, env)]
-    oidc_issuer_url: Url,
-    /// The OpenID Connect Client ID of this application.
-    #[arg(long, env)]
-    oidc_client_id: String,
-    /// The OpenID Connect Client Secret of this application.
-    #[arg(long, env)]
-    oidc_client_secret: Option<String>,
-    /// The URL to redirect the user to after OpenID Connect authentication.
-    #[arg(long, env)]
-    oidc_redirect_url: Url,
-    /// The URL of an Access Token introspection endpoint.
-    #[arg(long, env)]
-    access_token_introspection_url: Url,
 }
 
 #[derive(Debug, Parser)]
@@ -133,20 +112,8 @@ async fn main() {
     match args {
         Cli::Serve(args) => {
             let schema = setup_api();
-            let authn_client = OIDCClient::new(
-                args.oidc_issuer_url,
-                &args.oidc_client_id,
-                args.oidc_client_secret.as_ref(),
-                args.access_token_introspection_url,
-            )
-            .await
-            .unwrap();
-            let authz_client = OPAClient::new(args.opa_url);
-            println!(
-                "Authenticate at {}",
-                authn_client.authentication_url(args.oidc_redirect_url)
-            );
-            let router = setup_router(schema, authn_client, authz_client);
+            let opa_client = OPAClient::new(args.opa_url);
+            let router = setup_router(schema, opa_client);
             serve(router, args.port).await;
         }
         Cli::Schema(args) => {

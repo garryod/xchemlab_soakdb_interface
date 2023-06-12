@@ -20,6 +20,17 @@ struct OPARequest<T> {
     input: T,
 }
 
+#[derive(Debug, Serialize)]
+pub struct AuthorizationToken {
+    token: Option<String>,
+}
+
+impl From<Option<String>> for AuthorizationToken {
+    fn from(value: Option<String>) -> Self {
+        Self { token: value }
+    }
+}
+
 #[derive(Debug, Deserialize, Deref)]
 struct OPAResult<T> {
     result: T,
@@ -36,15 +47,16 @@ impl OPAClient {
             .join(&decision_path.replace('.', "/"))
     }
 
-    pub async fn get_decision<T: DeserializeOwned>(
+    pub async fn get_decision<I: Serialize, R: DeserializeOwned>(
         &self,
         decision_path: &str,
-    ) -> Result<T, OPADecisionError> {
+        input: I,
+    ) -> Result<R, OPADecisionError> {
         let client = reqwest::Client::new();
         let query_url = self.query_url(decision_path)?;
-        let query_body = OPARequest { input: () };
+        let query_body = OPARequest { input };
         let response = client.post(query_url).json(&query_body).send().await?;
-        let response_body = response.json::<OPAResult<T>>().await?;
+        let response_body = response.json::<OPAResult<R>>().await?;
         Ok(response_body.result)
     }
 }
