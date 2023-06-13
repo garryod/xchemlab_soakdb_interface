@@ -1,6 +1,7 @@
 use crate::models::{Metadata, MetadataReadback, Well};
 use async_graphql::Object;
 use itertools::Itertools;
+use opa_client::graphql::OPAGuard;
 use soakdb::{insert_wells, write_metadata};
 
 #[derive(Debug, Default)]
@@ -8,6 +9,7 @@ pub struct ExportMutation;
 
 #[Object]
 impl ExportMutation {
+    #[graphql(guard = "OPAGuard::new(\"xchemlab.soakdb_interface.allow\")")]
     async fn update_metadata(
         &self,
         path: String,
@@ -17,6 +19,7 @@ impl ExportMutation {
         Ok(visit.into())
     }
 
+    #[graphql(guard = "OPAGuard::new(\"xchemlab.soakdb_interface.allow\")")]
     async fn insert_wells(
         &self,
         path: String,

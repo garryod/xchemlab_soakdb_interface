@@ -3,13 +3,17 @@ name = "opa_client"
 version = "0.1.0"
 edition = "2021"
 authors = ["Garry O'Donnell <garry.o'donnell@diamond.ac.uk>"]
-description = "An Open Policy Agent RESTful client"
+description = "An Open Policy Agent RESTful client, with utiltiies for async-graphql."
 license = "Apache-2.0"
 repository = "https://github.com/garryod/xchemlab_soakdb_interface"
 homepage = "https://github.com/garryod/xchemlab_soakdb_interface"
 readme = "../README.md"
 
+[features]
+graphql = ["async-graphql"]
+
 [dependencies]
+async-graphql = { version = "5.0.9", optional = true }
 derive_more = { version = "0.99.17" }
 reqwest = { version = "0.11.18", features = ["json"] }
 serde = { version = "1.0.164" }

@@ -1,3 +1,6 @@
+#[cfg(feature = "graphql")]
+pub mod graphql;
+
 use derive_more::Deref;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use url::Url;
@@ -20,14 +23,18 @@ struct OPARequest<T> {
     input: T,
 }
 
-#[derive(Debug, Serialize)]
-pub struct AuthorizationToken {
-    token: Option<String>,
+#[derive(Debug, Clone, Serialize)]
+pub struct AuthorizationToken(Option<String>);
+
+impl AuthorizationToken {
+    pub fn new<S: AsRef<str>>(token: Option<S>) -> Self {
+        Self::from(token)
+    }
 }
 
-impl From<Option<String>> for AuthorizationToken {
-    fn from(value: Option<String>) -> Self {
-        Self { token: value }
+impl<S: AsRef<str>> From<Option<S>> for AuthorizationToken {
+    fn from(value: Option<S>) -> Self {
+        Self(value.map(|string| string.as_ref().to_string()))
     }
 }
 
