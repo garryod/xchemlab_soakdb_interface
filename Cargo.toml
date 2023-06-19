@@ -1,5 +1,11 @@
 [workspace]
-members = ["graphql_endpoints", "opa_client", "soakdb_io", "soakdb_sync"]
+members = [
+    "graphql_endpoints",
+    "opa_client",
+    "pin_packing",
+    "soakdb_io",
+    "soakdb_sync",
+]
 
 [workspace.dependencies]
 async-graphql = { version = "5.0.10", default-features = false, features = [

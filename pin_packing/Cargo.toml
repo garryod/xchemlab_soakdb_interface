@@ -1,0 +1,16 @@
+[package]
+name = "pin_packing"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+async-graphql = { workspace = true }
+axum = { workspace = true }
+clap = { workspace = true }
+dotenvy = { workspace = true }
+graphql_endpoints = { path = "../graphql_endpoints" }
+opa_client = { path = "../opa_client" }
+tokio = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+url = { workspace = true }

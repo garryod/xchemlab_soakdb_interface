@@ -1604,6 +1604,22 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8b870d8c151b6f2fb93e84a13146138f05d02ed11c7e7c54f8826aaaf7c9f184"
 
 [[package]]
+name = "pin_packing"
+version = "0.1.0"
+dependencies = [
+ "async-graphql",
+ "axum",
+ "clap",
+ "dotenvy",
+ "graphql_endpoints",
+ "opa_client",
+ "tokio",
+ "tracing",
+ "tracing-subscriber",
+ "url",
+]
+
+[[package]]
 name = "pkg-config"
 version = "0.3.27"
 source = "registry+https://github.com/rust-lang/crates.io-index"
