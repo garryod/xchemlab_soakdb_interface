@@ -9,7 +9,8 @@ services:
       - ..:/workspace:z
     command: sleep infinity
     environment:
-      - OPA_URL=http://opa:8181
+      OPA_URL: http://opa:8181
+      POSTGRES_URL: postgres://postgres:password@postgres
 
   opa:
     image: docker.io/openpolicyagent/opa:0.53.1
@@ -22,3 +23,8 @@ services:
       - /policies
     env_file:
       - .env
+
+  postgres:
+    image: docker.io/library/postgres:15.3-bookworm
+    environment:
+      POSTGRES_PASSWORD: password
