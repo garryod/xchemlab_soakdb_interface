@@ -1,12 +1,16 @@
 #![doc=include_str!("../README.md")]
 #![forbid(unsafe_code)]
 mod graphql;
+mod migrations;
+mod tables;
 
 use axum::{routing::get, Router, Server};
 use clap::Parser;
 use graphql::{build_schema, RootSchema};
 use graphql_endpoints::{GraphQLHandler, GraphQLSubscription, GraphiQLHandler};
+use migrations::create_tables;
 use opa_client::OPAClient;
+use sea_orm::{ConnectOptions, Database, DatabaseConnection, DbErr};
 use std::{
     fs::File,
     io::Write,
@@ -15,7 +19,7 @@ use std::{
 };
 use url::Url;
 
-fn setup_router(schema: RootSchema, opa_client: OPAClient) -> Router {
+fn setup_router(schema: RootSchema, opa_client: OPAClient, database: DatabaseConnection) -> Router {
     const GRAPHQL_ENDPOINT: &str = "/";
     const SUBSCRIPTION_ENDPOINT: &str = "/ws";
 
@@ -26,9 +30,19 @@ fn setup_router(schema: RootSchema, opa_client: OPAClient) -> Router {
                 GRAPHQL_ENDPOINT,
                 SUBSCRIPTION_ENDPOINT,
             ))
-            .post(GraphQLHandler::new(schema.clone(), opa_client)),
+            .post(GraphQLHandler::new_with_mutation(
+                schema.clone(),
+                move |request| request.data(opa_client.clone()).data(database.clone()),
+            )),
         )
         .route_service(SUBSCRIPTION_ENDPOINT, GraphQLSubscription::new(schema))
+}
+
+async fn setup_database(database_url: Url) -> Result<DatabaseConnection, DbErr> {
+    let connection_options = ConnectOptions::new(database_url.to_string());
+    let connection = Database::connect(connection_options).await?;
+    create_tables(&connection).await?;
+    Ok(connection)
 }
 
 async fn serve(router: Router, port: u16) {
@@ -55,6 +69,9 @@ struct ServeArgs {
     /// The port number to serve on.
     #[arg(short, long, default_value_t = 80)]
     port: u16,
+    /// The URL of a postgres database which will be used to persist service data.
+    #[arg(long, env)]
+    database_url: Url,
     /// The URL of an Open Policy Agent instance serving the required policy endpoints.
     #[arg(long, env)]
     opa_url: Url,
@@ -81,7 +98,8 @@ async fn main() {
         Cli::Serve(args) => {
             let schema = build_schema();
             let opa_client = OPAClient::new(args.opa_url);
-            let router = setup_router(schema, opa_client);
+            let database = setup_database(args.database_url).await.unwrap();
+            let router = setup_router(schema, opa_client, database);
             serve(router, args.port).await;
         }
         Cli::Schema(args) => {
