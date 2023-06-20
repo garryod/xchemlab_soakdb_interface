@@ -85,84 +85,20 @@ impl<S, B> Handler<((),), S, B> for GraphiQLHandler {
 ///     )
 /// }
 /// ```
-///
-/// ```
-/// use async_graphql::{ObjectType, Schema, SubscriptionType};
-/// use axum::{routing::post, Router};
-/// use graphql_endpoints::GraphQLHandler;
-/// use opa_client::OPAClient;
-/// use url::Url;
-///
-/// fn add_graphql_route<Query, Mutation, Subscription>(
-///     router: Router
-/// ) -> Router
-/// where
-///     Query: ObjectType + Clone + Default + 'static,
-///     Mutation: ObjectType + Clone + Default + 'static,
-///     Subscription: SubscriptionType + Clone + Default + 'static,
-///  {
-///     let schema = Schema::<Query, Mutation, Subscription>::default();
-///     let my_data = 42;
-///     router.route(
-///         "/graphql",
-///         post(GraphQLHandler::new_with_mutation(
-///             schema,
-///             move |request| request.data(my_data.clone())
-///         ))
-///     )
-/// }
-/// ```
 #[derive(Clone)]
-pub struct GraphQLHandler<Query, Mutation, Subscription, RM>
-where
-    RM: Fn(async_graphql::Request) -> async_graphql::Request + Clone + Send + Sync + 'static,
-{
+pub struct GraphQLHandler<Query, Mutation, Subscription> {
     schema: Schema<Query, Mutation, Subscription>,
-    request_mutation: RM,
 }
 
-impl<Query, Mutation, Subscription, RM> GraphQLHandler<Query, Mutation, Subscription, RM>
-where
-    RM: Fn(async_graphql::Request) -> async_graphql::Request + Clone + Send + Sync + 'static,
-{
-    /// Constructs an instance of the handler with the provided schema whilst allowing mutations to be applied to the GraphQL [`Request`].
-    ///
-    /// Mutation of the GraphQL [`Request`] can be used to pass additional data, such as database connections, to the resolvers.
-    ///
-    /// See also: [`GraphQLHandler::new`]
-    pub fn new_with_mutation(
-        schema: Schema<Query, Mutation, Subscription>,
-        request_mutation: RM,
-    ) -> Self {
-        Self {
-            schema,
-            request_mutation,
-        }
-    }
-}
-
-fn noop_request_mutation(request: async_graphql::Request) -> async_graphql::Request {
-    request
-}
-
-impl<Query, Mutation, Subscription>
-    GraphQLHandler<
-        Query,
-        Mutation,
-        Subscription,
-        fn(async_graphql::Request) -> async_graphql::Request,
-    >
-{
+impl<Query, Mutation, Subscription> GraphQLHandler<Query, Mutation, Subscription> {
     /// Constructs an instance of the handler with the provided schema.
-    ///
-    /// See also: [`GraphQLHandler::new_with_mutation`]
     pub fn new(schema: Schema<Query, Mutation, Subscription>) -> Self {
-        GraphQLHandler::new_with_mutation(schema, noop_request_mutation)
+        Self { schema }
     }
 }
 
-impl<S, B, Query, Mutation, Subscription, M> Handler<((),), S, B>
-    for GraphQLHandler<Query, Mutation, Subscription, M>
+impl<S, B, Query, Mutation, Subscription> Handler<((),), S, B>
+    for GraphQLHandler<Query, Mutation, Subscription>
 where
     B: HttpBody + Unpin + Send + Sync + 'static,
     B::Data: Into<Bytes>,
@@ -171,7 +107,6 @@ where
     Query: ObjectType + Clone + 'static,
     Mutation: ObjectType + Clone + 'static,
     Subscription: SubscriptionType + Clone + 'static,
-    M: Fn(async_graphql::Request) -> async_graphql::Request + Clone + Send + Sync + 'static,
 {
     type Future = Pin<Box<dyn Future<Output = Response> + Send + 'static>>;
 
@@ -187,9 +122,7 @@ where
                     let token =
                         AuthorizationToken::new(token.map(|token| token.token().to_string()));
                     GraphQLResponse::from(
-                        self.schema
-                            .execute((self.request_mutation)(request.into_inner().data(token)))
-                            .await,
+                        self.schema.execute(request.into_inner().data(token)).await,
                     )
                     .into_response()
                 }

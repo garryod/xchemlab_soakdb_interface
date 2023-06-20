@@ -4,9 +4,10 @@ mod graphql;
 mod models;
 mod resolvers;
 
+use async_graphql::extensions::Tracing;
 use axum::{routing::get, Router, Server};
 use clap::Parser;
-use graphql::{build_schema, RootSchema};
+use graphql::{root_schema_builder, RootSchema};
 use graphql_endpoints::{GraphQLHandler, GraphQLSubscription, GraphiQLHandler};
 use opa_client::OPAClient;
 use std::{
@@ -17,7 +18,7 @@ use std::{
 };
 use url::Url;
 
-fn setup_router(schema: RootSchema, opa_client: OPAClient) -> Router {
+fn setup_router(schema: RootSchema) -> Router {
     const GRAPHQL_ENDPOINT: &str = "/";
     const SUBSCRIPTION_ENDPOINT: &str = "/ws";
 
@@ -28,10 +29,7 @@ fn setup_router(schema: RootSchema, opa_client: OPAClient) -> Router {
                 GRAPHQL_ENDPOINT,
                 SUBSCRIPTION_ENDPOINT,
             ))
-            .post(GraphQLHandler::new_with_mutation(
-                schema.clone(),
-                move |request| request.data(opa_client.clone()),
-            )),
+            .post(GraphQLHandler::new(schema.clone())),
         )
         .route_service(SUBSCRIPTION_ENDPOINT, GraphQLSubscription::new(schema))
 }
@@ -84,13 +82,16 @@ async fn main() {
 
     match args {
         Cli::Serve(args) => {
-            let schema = build_schema();
             let opa_client = OPAClient::new(args.opa_url);
-            let router = setup_router(schema, opa_client);
+            let schema = root_schema_builder()
+                .extension(Tracing)
+                .data(opa_client)
+                .finish();
+            let router = setup_router(schema);
             serve(router, args.port).await;
         }
         Cli::Schema(args) => {
-            let schema = build_schema();
+            let schema = root_schema_builder().finish();
             let schema_string = schema.sdl();
             if let Some(path) = args.path {
                 let mut file = File::create(path).unwrap();
