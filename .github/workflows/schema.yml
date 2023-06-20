@@ -8,6 +8,11 @@ jobs:
   generate_schema:
     # Deduplicate jobs from pull requests and branch pushes within the same repo.
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository
+    strategy:
+      matrix:
+        service:
+          - soakdb_sync
+          - pin_packing
     runs-on: ubuntu-latest
     steps:
       - name: Checkout source
@@ -27,11 +32,12 @@ jobs:
         with:
           command: run
           args: >
+            --package ${{ matrix.service }}
             schema
-            --path api-schema.graphql
+            --path ${{ matrix.service }}.graphql
 
       - name: Upload Schema Artifact
         uses: actions/upload-artifact@v3.1.2
         with:
-          name: api-schema.graphql
-          path: api-schema.graphql
+          name: ${{ matrix.service }}.graphql
+          path: ${{ matrix.service }}.graphql
