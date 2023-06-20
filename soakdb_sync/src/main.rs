@@ -28,7 +28,10 @@ fn setup_router(schema: RootSchema, opa_client: OPAClient) -> Router {
                 GRAPHQL_ENDPOINT,
                 SUBSCRIPTION_ENDPOINT,
             ))
-            .post(GraphQLHandler::new(schema.clone(), opa_client)),
+            .post(GraphQLHandler::new_with_mutation(
+                schema.clone(),
+                move |request| request.data(opa_client.clone()),
+            )),
         )
         .route_service(SUBSCRIPTION_ENDPOINT, GraphQLSubscription::new(schema))
 }
