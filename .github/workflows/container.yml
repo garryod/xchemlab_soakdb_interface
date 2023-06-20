@@ -8,10 +8,15 @@ jobs:
   build:
     # Deduplicate jobs from pull requests and branch pushes within the same repo.
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository
+    strategy:
+      matrix:
+        service:
+          - soakdb_sync
+          - pin_packing
     runs-on: ubuntu-latest
     steps:
       - name: Generate Image Name
-        run: echo IMAGE_REPOSITORY=ghcr.io/$(tr '[:upper:]' '[:lower:]' <<< "${{ github.repository }}") >> $GITHUB_ENV
+        run: echo IMAGE_REPOSITORY=ghcr.io/$(tr '[:upper:]' '[:lower:]' <<< "${{ github.repository }}")-${{ matrix.service }} >> $GITHUB_ENV
 
       - name: Log in to GitHub Docker Registry
         if: github.event_name != 'pull_request'
@@ -36,6 +41,8 @@ jobs:
       - name: Build Image
         uses: docker/build-push-action@v4.0.0
         with:
+          build-args: |
+            SERVICE=${{ matrix.service }}
           push: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags') }}
           load: ${{ !(github.event_name == 'push' && startsWith(github.ref, 'refs/tags')) }}
           tags: ${{ steps.meta.outputs.tags }}

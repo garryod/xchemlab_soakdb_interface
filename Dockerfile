@@ -31,7 +31,8 @@ RUN touch graphql_endpoints/src/lib.rs \
     && cargo build --release
 
 FROM gcr.io/distroless/cc
+ARG SERVICE
 
-COPY --from=build /app/target/release/soakdb_sync /
+COPY --from=build /app/target/release/${SERVICE} /service
 
-ENTRYPOINT ["./soakdb_sync"]
+ENTRYPOINT ["./service"]
