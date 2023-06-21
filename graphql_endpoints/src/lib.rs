@@ -2,7 +2,7 @@
 #![warn(missing_docs)]
 #![doc = include_str!("../../README.md")]
 
-use async_graphql::{http::GraphiQLSource, ObjectType, Schema, SubscriptionType};
+use async_graphql::{http::GraphiQLSource, Executor};
 pub use async_graphql_axum::GraphQLSubscription;
 use async_graphql_axum::{GraphQLRequest, GraphQLResponse};
 use axum::{
@@ -86,27 +86,24 @@ impl<S, B> Handler<((),), S, B> for GraphiQLHandler {
 /// }
 /// ```
 #[derive(Clone)]
-pub struct GraphQLHandler<Query, Mutation, Subscription> {
-    schema: Schema<Query, Mutation, Subscription>,
+pub struct GraphQLHandler<E: Executor> {
+    executor: E,
 }
 
-impl<Query, Mutation, Subscription> GraphQLHandler<Query, Mutation, Subscription> {
+impl<E: Executor> GraphQLHandler<E> {
     /// Constructs an instance of the handler with the provided schema.
-    pub fn new(schema: Schema<Query, Mutation, Subscription>) -> Self {
-        Self { schema }
+    pub fn new(executor: E) -> Self {
+        Self { executor }
     }
 }
 
-impl<S, B, Query, Mutation, Subscription> Handler<((),), S, B>
-    for GraphQLHandler<Query, Mutation, Subscription>
+impl<S, B, E> Handler<((),), S, B> for GraphQLHandler<E>
 where
     B: HttpBody + Unpin + Send + Sync + 'static,
     B::Data: Into<Bytes>,
     B::Error: Into<BoxError>,
     S: Send + Sync + 'static,
-    Query: ObjectType + Clone + 'static,
-    Mutation: ObjectType + Clone + 'static,
-    Subscription: SubscriptionType + Clone + 'static,
+    E: Executor,
 {
     type Future = Pin<Box<dyn Future<Output = Response> + Send + 'static>>;
 
@@ -122,7 +119,9 @@ where
                     let token =
                         AuthorizationToken::new(token.map(|token| token.token().to_string()));
                     GraphQLResponse::from(
-                        self.schema.execute(request.into_inner().data(token)).await,
+                        self.executor
+                            .execute(request.into_inner().data(token))
+                            .await,
                     )
                     .into_response()
                 }
