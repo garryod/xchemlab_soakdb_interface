@@ -112,6 +112,56 @@ impl OPAClient {
     }
 }
 
+/// A deserializable structure containing a decision and the authorization token subject.
+#[derive(Debug, Clone, Deserialize)]
+#[serde(untagged)]
+pub enum SubjectDecision {
+    /// A decision has been made to allow the operation.
+    Allowed {
+        /// A sentinal representing that the decision has been made to allow the operation.
+        allowed: Allowed<true>,
+        /// The subject to which the authorization token belonged.
+        subject: String,
+    },
+    /// A decision has been made to forbid the operation.
+    Forbiden {
+        /// A sentinal representing that the decision has been made to forbid the operation.
+        allowed: Allowed<false>,
+    },
+}
+
+/// A boolean representing whether an action was authorized.
+#[derive(Debug, Clone)]
+pub struct Allowed<const A: bool>;
+
+impl<'de, const A: bool> Deserialize<'de> for Allowed<A> {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let allowed = bool::deserialize(deserializer)?;
+        if allowed == A {
+            Ok(Allowed::<A>)
+        } else {
+            Err(serde::de::Error::custom("Invalid allowed status"))
+        }
+    }
+}
+
+impl SubjectDecision {
+    /// Converts the decision into an [`async_graphql::Result`].
+    pub fn into_result(self) -> async_graphql::Result<String> {
+        match self {
+            SubjectDecision::Allowed {
+                allowed: _,
+                subject,
+            } => Ok(subject),
+            SubjectDecision::Forbiden { allowed: _ } => {
+                Err(async_graphql::Error::new("Unauthorized"))
+            }
+        }
+    }
+}
 /// A serializable Authorization Token type
 #[derive(Debug, Clone, Serialize)]
 pub struct AuthorizationToken(Option<String>);

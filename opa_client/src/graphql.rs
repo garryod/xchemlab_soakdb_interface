@@ -1,75 +1,33 @@
-use async_graphql::{async_trait::async_trait, Context, Guard, Name, Value};
+use async_graphql::{Name, Value};
+use derive_more::Constructor;
 use serde::Serialize;
 
-use crate::{AuthorizationToken, OPAClient};
+use crate::AuthorizationToken;
 
-/// An [`async_graphql`] Resolver [`Guard`] which queries OPA for an Authorization decision.
-///
-/// The [`Context`] must contain both a [`OPAClient`] and an [`AuthorizationToken`], if either of these are not found an [`Err`] will be returned.
-///
-/// # Examples
-/// ```
-/// use async_graphql::SimpleObject;
-/// use opa_client::graphql::OPAGuard;
-///
-/// #[derive(SimpleObject)]
-/// struct MyModel {
-///     #[graphql(guard = "OPAGuard::new(\"my.opa.policy.allow\")")]
-///     value: i32
-/// }
-///
-/// ```
-///
-/// ```
-/// use async_graphql::{Object};
-/// use opa_client::graphql::OPAGuard;
-///
-/// struct Query;
-///
-/// #[Object]
-/// impl Query {
-///     #[graphql(guard = "OPAGuard::new(\"my.opa.policy.allow\")")]
-///     async fn value(&self, value: i32) -> i32 {
-///         value
-///     }
-/// }
-/// ```
-pub struct OPAGuard {
-    endpoint: String,
-}
-
-impl OPAGuard {
-    /// Constructs a new [`OPAGuard`] which will query the provided policy for a decision.
-    pub fn new(policy: impl AsRef<str>) -> Self {
-        Self {
-            endpoint: policy.as_ref().to_string(),
-        }
-    }
-}
-
-#[derive(Debug, Clone, Serialize)]
-struct OPAGraphQLInput {
+/// A serializable structure containing the data nessacary to make an authorization decision for a GraphQL endpoint.
+#[derive(Debug, Clone, Constructor, Serialize)]
+pub struct OPAGraphQLInput {
     field: String,
     arguments: Vec<(Name, Value)>,
     token: AuthorizationToken,
 }
 
-#[async_trait]
-impl Guard for OPAGuard {
-    async fn check(&self, ctx: &Context<'_>) -> async_graphql::Result<()> {
-        let authz_client = ctx.data::<OPAClient>()?;
-        let token = ctx.data::<AuthorizationToken>()?.clone();
-        let field = ctx.field().name().to_string();
-        let arguments = ctx.field().arguments()?;
-        let input = OPAGraphQLInput {
-            field,
-            arguments,
-            token,
-        };
-        authz_client
-            .decide::<_, bool>(&self.endpoint, input)
-            .await?
-            .then_some(())
-            .ok_or(async_graphql::Error::new("Unauthorized"))
-    }
+/// Queries the authorization server for a decision about the provided endpoint. Returns a result, which contains the subject if authorized.
+#[macro_export]
+macro_rules! subject_authorization {
+    ($endpoint:literal, $ctx:ident) => {
+        async {
+            let field = $ctx.field().name().to_string();
+            let arguments = $ctx.field().arguments()?;
+            let token = $ctx.data::<::opa_client::AuthorizationToken>()?.clone();
+            let authz_client = $ctx.data::<::opa_client::OPAClient>()?;
+            authz_client
+                .decide::<_, ::opa_client::SubjectDecision>(
+                    $endpoint,
+                    ::opa_client::graphql::OPAGraphQLInput::new(field, arguments, token),
+                )
+                .await?
+                .into_result()
+        }
+    };
 }
