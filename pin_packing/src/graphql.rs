@@ -1,4 +1,8 @@
-use crate::resolvers::cane::{CaneMutation, CaneQuery};
+use crate::resolvers::{
+    cane::{CaneMutation, CaneQuery},
+    pin::PinMutation,
+    puck::PuckMutation,
+};
 use async_graphql::{EmptySubscription, MergedObject, Schema, SchemaBuilder};
 
 pub fn root_schema_builder() -> SchemaBuilder<RootQuery, RootMutation, EmptySubscription> {
@@ -15,4 +19,4 @@ pub type RootSchema = Schema<RootQuery, RootMutation, EmptySubscription>;
 pub struct RootQuery(CaneQuery);
 
 #[derive(Debug, Clone, MergedObject, Default)]
-pub struct RootMutation(CaneMutation);
+pub struct RootMutation(CaneMutation, PuckMutation, PinMutation);

@@ -1658,6 +1658,7 @@ dependencies = [
  "axum",
  "chrono",
  "clap",
+ "derive_more",
  "dotenvy",
  "graphql_endpoints",
  "opa_client",

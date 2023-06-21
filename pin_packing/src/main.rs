@@ -2,6 +2,7 @@
 #![forbid(unsafe_code)]
 mod graphql;
 mod migrations;
+mod resolvers;
 mod tables;
 
 use async_graphql::extensions::Tracing;

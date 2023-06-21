@@ -8,6 +8,7 @@ async-graphql = { workspace = true }
 axum = { workspace = true }
 clap = { workspace = true }
 chrono = { workspace = true }
+derive_more = { workspace = true }
 dotenvy = { workspace = true }
 graphql_endpoints = { path = "../graphql_endpoints" }
 opa_client = { path = "../opa_client" }

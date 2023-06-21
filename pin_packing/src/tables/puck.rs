@@ -1,3 +1,4 @@
+use async_graphql::SimpleObject;
 use chrono::{DateTime, Utc};
 use sea_orm::{
     ActiveModelBehavior, DeriveEntityModel, DerivePrimaryKey, DeriveRelation, EntityTrait,
@@ -5,14 +6,15 @@ use sea_orm::{
 };
 use uuid::Uuid;
 
-#[derive(Debug, Clone, PartialEq, Eq, DeriveEntityModel)]
+#[derive(Debug, Clone, PartialEq, Eq, DeriveEntityModel, SimpleObject)]
 #[sea_orm(table_name = "puck")]
+#[graphql(name = "Puck", complex)]
 pub struct Model {
     #[sea_orm(primary_key)]
     pub cane_id: Uuid,
     #[sea_orm(primary_key)]
-    pub cane_position: i8,
-    pub barcode: String,
+    pub cane_position: i16,
+    pub barcode: Uuid,
     pub timestamp: DateTime<Utc>,
     pub operator_id: Uuid,
 }
