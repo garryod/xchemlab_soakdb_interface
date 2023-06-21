@@ -20,6 +20,24 @@ impl puck::Model {
 }
 
 #[derive(Debug, Clone, Default)]
+pub struct PuckQuery;
+
+#[Object]
+impl PuckQuery {
+    async fn get_puck(
+        &self,
+        ctx: &Context<'_>,
+        cane_id: Uuid,
+        cane_position: i16,
+    ) -> async_graphql::Result<Option<puck::Model>> {
+        let database = ctx.data::<DatabaseConnection>()?;
+        Ok(puck::Entity::find_by_id((cane_id, cane_position))
+            .one(database)
+            .await?)
+    }
+}
+
+#[derive(Debug, Clone, Default)]
 pub struct PuckMutation;
 
 #[Object]

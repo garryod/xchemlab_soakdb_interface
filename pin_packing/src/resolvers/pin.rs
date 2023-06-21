@@ -13,6 +13,27 @@ pub struct PinIndex {
 }
 
 #[derive(Debug, Clone, Default)]
+pub struct PinQuery;
+
+#[Object]
+impl PinQuery {
+    async fn get_pin(
+        &self,
+        ctx: &Context<'_>,
+        cane_id: Uuid,
+        cane_position: i16,
+        puck_position: i16,
+    ) -> async_graphql::Result<Option<pin::Model>> {
+        let database = ctx.data::<DatabaseConnection>()?;
+        Ok(
+            pin::Entity::find_by_id((cane_id, cane_position, puck_position))
+                .one(database)
+                .await?,
+        )
+    }
+}
+
+#[derive(Debug, Clone, Default)]
 pub struct PinMutation;
 
 #[Object]
