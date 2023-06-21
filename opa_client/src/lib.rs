@@ -148,17 +148,20 @@ impl<'de, const A: bool> Deserialize<'de> for Allowed<A> {
     }
 }
 
+/// An error produced when [`SubjectDecision::Forbidden`] is turned into a [`Result`]
+#[derive(Debug, thiserror::Error)]
+#[error("Unauthorized")]
+pub struct Unauhtorized;
+
 impl SubjectDecision {
-    /// Converts the decision into an [`async_graphql::Result`].
-    pub fn into_result(self) -> async_graphql::Result<String> {
+    /// Converts the decision into an [`Result`].
+    pub fn into_result(self) -> Result<String, Unauhtorized> {
         match self {
             SubjectDecision::Allowed {
                 allowed: _,
                 subject,
             } => Ok(subject),
-            SubjectDecision::Forbiden { allowed: _ } => {
-                Err(async_graphql::Error::new("Unauthorized"))
-            }
+            SubjectDecision::Forbiden { allowed: _ } => Err(Unauhtorized),
         }
     }
 }

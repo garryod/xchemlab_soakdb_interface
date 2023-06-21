@@ -28,6 +28,7 @@ macro_rules! subject_authorization {
                 )
                 .await?
                 .into_result()
+                .map_err(::async_graphql::Error::from)
         }
     };
 }
