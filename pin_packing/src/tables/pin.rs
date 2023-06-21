@@ -1,8 +1,10 @@
+use super::{cane::CANE_SLOTS, puck::PUCK_SLOTS};
 use async_graphql::SimpleObject;
+use axum::async_trait;
 use chrono::{DateTime, Utc};
 use sea_orm::{
-    ActiveModelBehavior, DeriveEntityModel, DerivePrimaryKey, DeriveRelation, EntityTrait,
-    EnumIter, PrimaryKeyTrait, Related, RelationTrait,
+    ActiveModelBehavior, ConnectionTrait, DbErr, DeriveEntityModel, DerivePrimaryKey,
+    DeriveRelation, EntityTrait, EnumIter, PrimaryKeyTrait, Related, RelationTrait,
 };
 use uuid::Uuid;
 
@@ -39,4 +41,20 @@ impl Related<super::puck::Entity> for Entity {
     }
 }
 
-impl ActiveModelBehavior for ActiveModel {}
+#[async_trait]
+impl ActiveModelBehavior for ActiveModel {
+    async fn before_save<C>(self, _db: &C, _insert: bool) -> Result<Self, DbErr>
+    where
+        C: ConnectionTrait,
+    {
+        (*self.cane_position.as_ref() > 0 && *self.cane_position.as_ref() <= CANE_SLOTS)
+            .then_some(())
+            .ok_or(DbErr::Custom("Invalid Cane Position".to_string()))?;
+
+        (*self.puck_position.as_ref() > 0 && *self.puck_position.as_ref() <= PUCK_SLOTS)
+            .then_some(())
+            .ok_or(DbErr::Custom("Invalid Puck Position".to_string()))?;
+
+        Ok(self)
+    }
+}
