@@ -2,6 +2,7 @@ use crate::tables::{pin, puck};
 use async_graphql::{ComplexObject, Context, Object, SimpleObject};
 use chrono::Utc;
 use derive_more::From;
+use opa_client::subject_authorization;
 use sea_orm::{ActiveValue, DatabaseConnection, EntityTrait, ModelTrait};
 use uuid::Uuid;
 
@@ -14,6 +15,7 @@ pub struct PuckIndex {
 #[ComplexObject]
 impl puck::Model {
     async fn pins(&self, ctx: &Context<'_>) -> async_graphql::Result<Vec<pin::Model>> {
+        subject_authorization!("xchemlab.pin_packing.get_pin", ctx).await?;
         let database = ctx.data::<DatabaseConnection>()?;
         Ok(self.find_related(pin::Entity).all(database).await?)
     }
@@ -30,6 +32,7 @@ impl PuckQuery {
         cane_id: Uuid,
         cane_position: i16,
     ) -> async_graphql::Result<Option<puck::Model>> {
+        subject_authorization!("xchemlab.pin_packing.get_puck", ctx).await?;
         let database = ctx.data::<DatabaseConnection>()?;
         Ok(puck::Entity::find_by_id((cane_id, cane_position))
             .one(database)
@@ -48,8 +51,8 @@ impl PuckMutation {
         cane_id: Uuid,
         cane_position: i16,
         barcode: Uuid,
-        operator_id: Uuid,
     ) -> async_graphql::Result<PuckIndex> {
+        let operator_id = subject_authorization!("xchemlab.pin_packing.create_puck", ctx).await?;
         let database = ctx.data::<DatabaseConnection>()?;
         let puck = puck::ActiveModel {
             cane_id: ActiveValue::Set(cane_id),

@@ -2,6 +2,7 @@ use crate::tables::pin;
 use async_graphql::{Context, Object, SimpleObject};
 use chrono::Utc;
 use derive_more::From;
+use opa_client::subject_authorization;
 use sea_orm::{ActiveValue, DatabaseConnection, EntityTrait};
 use uuid::Uuid;
 
@@ -24,6 +25,7 @@ impl PinQuery {
         cane_position: i16,
         puck_position: i16,
     ) -> async_graphql::Result<Option<pin::Model>> {
+        subject_authorization!("xchemlab.pin_packing.get_pin", ctx).await?;
         let database = ctx.data::<DatabaseConnection>()?;
         Ok(
             pin::Entity::find_by_id((cane_id, cane_position, puck_position))
@@ -48,8 +50,8 @@ impl PinMutation {
         barcode: Uuid,
         crystal_plate: Uuid,
         crystal_well: i16,
-        operator_id: Uuid,
     ) -> async_graphql::Result<PinIndex> {
+        let operator_id = subject_authorization!("xchemlab.pin_packing.create_pin", ctx).await?;
         let database = ctx.data::<DatabaseConnection>()?;
         let pin = pin::ActiveModel {
             cane_id: ActiveValue::Set(cane_id),

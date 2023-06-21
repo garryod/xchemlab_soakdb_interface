@@ -20,7 +20,7 @@ pub struct Model {
     pub cane_position: i16,
     pub barcode: Uuid,
     pub timestamp: DateTime<Utc>,
-    pub operator_id: Uuid,
+    pub operator_id: String,
 }
 
 #[derive(Debug, Clone, Copy, EnumIter, DeriveRelation)]

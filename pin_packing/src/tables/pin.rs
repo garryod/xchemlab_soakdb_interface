@@ -22,7 +22,7 @@ pub struct Model {
     pub timestamp: DateTime<Utc>,
     pub crystal_plate: Uuid,
     pub crystal_well: i16,
-    pub operator_id: Uuid,
+    pub operator_id: String,
 }
 
 #[derive(Debug, Clone, Copy, EnumIter, DeriveRelation)]
