@@ -1,6 +1,7 @@
 [workspace]
 members = [
     "graphql_endpoints",
+    "graphql_event_broker",
     "opa_client",
     "pin_packing",
     "soakdb_io",

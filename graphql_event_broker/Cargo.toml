@@ -1,0 +1,10 @@
+[package]
+name = "graphql_event_broker"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+async-graphql = { workspace = true }
+once_cell = { version = "1.18.0" }
+tokio = { workspace = true }
+tokio-stream = { version = "0.1.14", features = ["sync"] }
