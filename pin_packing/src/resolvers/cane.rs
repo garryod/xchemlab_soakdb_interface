@@ -1,7 +1,6 @@
 use crate::tables::{cane, puck};
-use async_graphql::{ComplexObject, Context, Object, SimpleObject};
+use async_graphql::{ComplexObject, Context, Object};
 use chrono::{DateTime, Utc};
-use derive_more::From;
 use opa_client::subject_authorization;
 use sea_orm::{ActiveValue, DatabaseConnection, EntityTrait, ModelTrait};
 use uuid::Uuid;
@@ -13,12 +12,6 @@ impl cane::Model {
         let database = ctx.data::<DatabaseConnection>()?;
         Ok(self.find_related(puck::Entity).all(database).await?)
     }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, SimpleObject, From)]
-pub struct CaneIndex {
-    barcode: Uuid,
-    created: DateTime<Utc>,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -55,7 +48,7 @@ impl CaneMutation {
         &self,
         ctx: &Context<'_>,
         barcode: Uuid,
-    ) -> async_graphql::Result<CaneIndex> {
+    ) -> async_graphql::Result<cane::Model> {
         let operator_id = subject_authorization!("xchemlab.pin_packing.create_cane", ctx).await?;
         let database = ctx.data::<DatabaseConnection>()?;
         let cane = cane::ActiveModel {
@@ -63,7 +56,8 @@ impl CaneMutation {
             created: ActiveValue::Set(Utc::now()),
             operator_id: ActiveValue::Set(operator_id),
         };
-        let insert = cane::Entity::insert(cane).exec(database).await?;
-        Ok(insert.last_insert_id.into())
+        Ok(cane::Entity::insert(cane)
+            .exec_with_returning(database)
+            .await?)
     }
 }

@@ -1,18 +1,9 @@
 use crate::tables::pin;
-use async_graphql::{Context, Object, SimpleObject};
+use async_graphql::{Context, Object};
 use chrono::{DateTime, Utc};
-use derive_more::From;
 use opa_client::subject_authorization;
 use sea_orm::{ActiveValue, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter};
 use uuid::Uuid;
-
-#[derive(Debug, Clone, PartialEq, Eq, SimpleObject, From)]
-pub struct PinIndex {
-    cane_barcode: Uuid,
-    cane_created: DateTime<Utc>,
-    cane_position: i16,
-    puck_position: i16,
-}
 
 #[derive(Debug, Clone, Default)]
 pub struct PinQuery;
@@ -93,7 +84,7 @@ impl PinMutation {
         barcode: Uuid,
         crystal_plate: Uuid,
         crystal_well: i16,
-    ) -> async_graphql::Result<PinIndex> {
+    ) -> async_graphql::Result<pin::Model> {
         let operator_id = subject_authorization!("xchemlab.pin_packing.create_pin", ctx).await?;
         let database = ctx.data::<DatabaseConnection>()?;
         let pin = pin::ActiveModel {
@@ -107,7 +98,8 @@ impl PinMutation {
             crystal_well: ActiveValue::Set(crystal_well),
             operator_id: ActiveValue::Set(operator_id),
         };
-        let insert = pin::Entity::insert(pin).exec(database).await?;
-        Ok(insert.last_insert_id.into())
+        Ok(pin::Entity::insert(pin)
+            .exec_with_returning(database)
+            .await?)
     }
 }
