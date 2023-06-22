@@ -8,7 +8,8 @@ use uuid::Uuid;
 
 #[derive(Debug, Clone, PartialEq, Eq, SimpleObject, From)]
 pub struct PinIndex {
-    cane_id: Uuid,
+    cane_barcode: Uuid,
+    cane_created: DateTime<Utc>,
     cane_position: i16,
     puck_position: i16,
 }
@@ -21,14 +22,15 @@ impl PinQuery {
     async fn get_pin(
         &self,
         ctx: &Context<'_>,
-        cane_id: Uuid,
+        cane_barcode: Uuid,
+        cane_created: DateTime<Utc>,
         cane_position: i16,
         puck_position: i16,
     ) -> async_graphql::Result<Option<pin::Model>> {
         subject_authorization!("xchemlab.pin_packing.get_pin", ctx).await?;
         let database = ctx.data::<DatabaseConnection>()?;
         Ok(
-            pin::Entity::find_by_id((cane_id, cane_position, puck_position))
+            pin::Entity::find_by_id((cane_barcode, cane_created, cane_position, puck_position))
                 .one(database)
                 .await?,
         )
@@ -47,7 +49,7 @@ impl PinQuery {
             .filter(
                 pin::Column::CrystalPlate
                     .eq(crystal_plate)
-                    .add(pin::Column::Timestamp.between(from, to)),
+                    .add(pin::Column::Created.between(from, to)),
             )
             .all(database)
             .await?)
@@ -67,7 +69,7 @@ impl PinQuery {
             .filter(
                 pin::Column::CrystalPlate
                     .eq(crystal_plate)
-                    .and(pin::Column::Timestamp.between(from, to))
+                    .and(pin::Column::Created.between(from, to))
                     .and(pin::Column::CrystalWell.eq(crystal_well)),
             )
             .all(database)
@@ -84,9 +86,10 @@ impl PinMutation {
     async fn create_pin(
         &self,
         ctx: &Context<'_>,
-        cane_id: Uuid,
-        cane_position: i16,
+        cane_barcode: Uuid,
+        cane_created: DateTime<Utc>,
         puck_position: i16,
+        position: i16,
         barcode: Uuid,
         crystal_plate: Uuid,
         crystal_well: i16,
@@ -94,11 +97,12 @@ impl PinMutation {
         let operator_id = subject_authorization!("xchemlab.pin_packing.create_pin", ctx).await?;
         let database = ctx.data::<DatabaseConnection>()?;
         let pin = pin::ActiveModel {
-            cane_id: ActiveValue::Set(cane_id),
-            cane_position: ActiveValue::Set(cane_position),
+            cane_barcode: ActiveValue::Set(cane_barcode),
+            cane_created: ActiveValue::Set(cane_created),
             puck_position: ActiveValue::Set(puck_position),
+            position: ActiveValue::Set(position),
             barcode: ActiveValue::Set(barcode),
-            timestamp: ActiveValue::Set(Utc::now()),
+            created: ActiveValue::Set(Utc::now()),
             crystal_plate: ActiveValue::Set(crystal_plate),
             crystal_well: ActiveValue::Set(crystal_well),
             operator_id: ActiveValue::Set(operator_id),

@@ -13,10 +13,10 @@ pub const CANE_SLOTS: i16 = 7;
 #[sea_orm(table_name = "cane")]
 #[graphql(name = "Cane", complex)]
 pub struct Model {
-    #[sea_orm(primary_key, auto_increment = false)]
-    pub id: Uuid,
+    #[sea_orm(primary_key)]
     pub barcode: Uuid,
-    pub timstamp: DateTime<Utc>,
+    #[sea_orm(primary_key)]
+    pub created: DateTime<Utc>,
     pub operator_id: String,
 }
 

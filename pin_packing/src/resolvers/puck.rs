@@ -1,6 +1,6 @@
 use crate::tables::{pin, puck};
 use async_graphql::{ComplexObject, Context, Object, SimpleObject};
-use chrono::Utc;
+use chrono::{DateTime, Utc};
 use derive_more::From;
 use opa_client::subject_authorization;
 use sea_orm::{ActiveValue, DatabaseConnection, EntityTrait, ModelTrait};
@@ -8,7 +8,8 @@ use uuid::Uuid;
 
 #[derive(Debug, Clone, PartialEq, Eq, SimpleObject, From)]
 pub struct PuckIndex {
-    cane_id: Uuid,
+    cane_barcode: Uuid,
+    cane_created: DateTime<Utc>,
     cane_position: i16,
 }
 
@@ -29,14 +30,17 @@ impl PuckQuery {
     async fn get_puck(
         &self,
         ctx: &Context<'_>,
-        cane_id: Uuid,
+        cane_barcode: Uuid,
+        cane_created: DateTime<Utc>,
         cane_position: i16,
     ) -> async_graphql::Result<Option<puck::Model>> {
         subject_authorization!("xchemlab.pin_packing.get_puck", ctx).await?;
         let database = ctx.data::<DatabaseConnection>()?;
-        Ok(puck::Entity::find_by_id((cane_id, cane_position))
-            .one(database)
-            .await?)
+        Ok(
+            puck::Entity::find_by_id((cane_barcode, cane_created, cane_position))
+                .one(database)
+                .await?,
+        )
     }
 }
 
@@ -48,17 +52,19 @@ impl PuckMutation {
     async fn create_puck(
         &self,
         ctx: &Context<'_>,
-        cane_id: Uuid,
-        cane_position: i16,
+        cane_barcode: Uuid,
+        cane_created: DateTime<Utc>,
+        position: i16,
         barcode: Uuid,
     ) -> async_graphql::Result<PuckIndex> {
         let operator_id = subject_authorization!("xchemlab.pin_packing.create_puck", ctx).await?;
         let database = ctx.data::<DatabaseConnection>()?;
         let puck = puck::ActiveModel {
-            cane_id: ActiveValue::Set(cane_id),
-            cane_position: ActiveValue::Set(cane_position),
+            cane_barcode: ActiveValue::Set(cane_barcode),
+            cane_created: ActiveValue::Set(cane_created),
+            position: ActiveValue::Set(position),
             barcode: ActiveValue::Set(barcode),
-            timestamp: ActiveValue::Set(Utc::now()),
+            created: ActiveValue::Set(Utc::now()),
             operator_id: ActiveValue::Set(operator_id),
         };
         let insert = puck::Entity::insert(puck).exec(database).await?;

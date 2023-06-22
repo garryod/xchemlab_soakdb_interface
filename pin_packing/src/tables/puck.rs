@@ -15,11 +15,13 @@ pub const PUCK_SLOTS: i16 = 16;
 #[graphql(name = "Puck", complex)]
 pub struct Model {
     #[sea_orm(primary_key)]
-    pub cane_id: Uuid,
+    pub cane_barcode: Uuid,
     #[sea_orm(primary_key)]
-    pub cane_position: i16,
+    pub cane_created: DateTime<Utc>,
+    #[sea_orm(primary_key)]
+    pub position: i16,
     pub barcode: Uuid,
-    pub timestamp: DateTime<Utc>,
+    pub created: DateTime<Utc>,
     pub operator_id: String,
 }
 
@@ -29,8 +31,8 @@ pub enum Relation {
     Pin,
     #[sea_orm(
         belongs_to = "super::cane::Entity",
-        from = "Column::CaneId",
-        to = "super::cane::Column::Id"
+        from = "(Column::CaneBarcode, Column::CaneCreated)",
+        to = "(super::cane::Column::Barcode, super::cane::Column::Created)"
     )]
     Cane,
 }
@@ -53,7 +55,7 @@ impl ActiveModelBehavior for ActiveModel {
     where
         C: ConnectionTrait,
     {
-        (*self.cane_position.as_ref() > 0 && *self.cane_position.as_ref() <= CANE_SLOTS)
+        (*self.position.as_ref() > 0 && *self.position.as_ref() <= CANE_SLOTS)
             .then_some(())
             .ok_or(DbErr::Custom("Invalid Cane Position".to_string()))?;
 
