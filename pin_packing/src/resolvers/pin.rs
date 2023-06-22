@@ -31,17 +31,11 @@ impl PinQuery {
         &self,
         ctx: &Context<'_>,
         crystal_plate: Uuid,
-        from: DateTime<Utc>,
-        to: DateTime<Utc>,
     ) -> async_graphql::Result<Vec<pin::Model>> {
         subject_authorization!("xchemlab.pin_packing.get_pin", ctx).await?;
         let database = ctx.data::<DatabaseConnection>()?;
         Ok(pin::Entity::find()
-            .filter(
-                pin::Column::CrystalPlate
-                    .eq(crystal_plate)
-                    .add(pin::Column::Created.between(from, to)),
-            )
+            .filter(pin::Column::CrystalPlate.eq(crystal_plate))
             .all(database)
             .await?)
     }
@@ -51,8 +45,6 @@ impl PinQuery {
         ctx: &Context<'_>,
         crystal_plate: Uuid,
         crystal_well: i16,
-        from: DateTime<Utc>,
-        to: DateTime<Utc>,
     ) -> async_graphql::Result<Vec<pin::Model>> {
         subject_authorization!("xchemlab.pin_packing.get_pin", ctx).await?;
         let database = ctx.data::<DatabaseConnection>()?;
@@ -60,7 +52,6 @@ impl PinQuery {
             .filter(
                 pin::Column::CrystalPlate
                     .eq(crystal_plate)
-                    .and(pin::Column::Created.between(from, to))
                     .and(pin::Column::CrystalWell.eq(crystal_well)),
             )
             .all(database)
