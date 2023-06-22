@@ -1,9 +1,9 @@
 use crate::tables::pin;
 use async_graphql::{Context, Object, SimpleObject};
-use chrono::Utc;
+use chrono::{DateTime, Utc};
 use derive_more::From;
 use opa_client::subject_authorization;
-use sea_orm::{ActiveValue, DatabaseConnection, EntityTrait};
+use sea_orm::{ActiveValue, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter};
 use uuid::Uuid;
 
 #[derive(Debug, Clone, PartialEq, Eq, SimpleObject, From)]
@@ -32,6 +32,46 @@ impl PinQuery {
                 .one(database)
                 .await?,
         )
+    }
+
+    async fn get_plate_pins(
+        &self,
+        ctx: &Context<'_>,
+        crystal_plate: Uuid,
+        from: DateTime<Utc>,
+        to: DateTime<Utc>,
+    ) -> async_graphql::Result<Vec<pin::Model>> {
+        subject_authorization!("xchemlab.pin_packing.get_pin", ctx).await?;
+        let database = ctx.data::<DatabaseConnection>()?;
+        Ok(pin::Entity::find()
+            .filter(
+                pin::Column::CrystalPlate
+                    .eq(crystal_plate)
+                    .add(pin::Column::Timestamp.between(from, to)),
+            )
+            .all(database)
+            .await?)
+    }
+
+    async fn get_well_pins(
+        &self,
+        ctx: &Context<'_>,
+        crystal_plate: Uuid,
+        crystal_well: i16,
+        from: DateTime<Utc>,
+        to: DateTime<Utc>,
+    ) -> async_graphql::Result<Vec<pin::Model>> {
+        subject_authorization!("xchemlab.pin_packing.get_pin", ctx).await?;
+        let database = ctx.data::<DatabaseConnection>()?;
+        Ok(pin::Entity::find()
+            .filter(
+                pin::Column::CrystalPlate
+                    .eq(crystal_plate)
+                    .and(pin::Column::Timestamp.between(from, to))
+                    .and(pin::Column::CrystalWell.eq(crystal_well)),
+            )
+            .all(database)
+            .await?)
     }
 }
 
