@@ -21,7 +21,7 @@ pub enum PuckStatus {
 #[sea_orm(table_name = "pin_library")]
 #[graphql(name = "LibraryPuck")]
 pub struct Model {
-    #[sea_orm(primary_key)]
+    #[sea_orm(primary_key, auto_increment = false)]
     pub barcode: String,
     pub status: PuckStatus,
 }

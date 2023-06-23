@@ -1,7 +1,7 @@
 use crate::resolvers::{
-    cane::{CaneMutation, CaneQuery},
-    pin::{PinMutation, PinQuery},
-    puck::{PuckMutation, PuckQuery},
+    cane_mount::{CaneMutation, CaneQuery},
+    pin_mount::{PinMutation, PinQuery},
+    puck_mount::{PuckMutation, PuckQuery},
 };
 use async_graphql::{EmptySubscription, MergedObject, Schema, SchemaBuilder};
 

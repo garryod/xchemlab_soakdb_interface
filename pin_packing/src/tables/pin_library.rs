@@ -23,7 +23,7 @@ pub enum PinStatus {
 #[sea_orm(table_name = "pin")]
 #[graphql(name = "Pins")]
 pub struct Model {
-    #[sea_orm(primary_key)]
+    #[sea_orm(primary_key, auto_increment = false)]
     pub barcode: String,
     pub status: PinStatus,
 }

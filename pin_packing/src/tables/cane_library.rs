@@ -23,7 +23,7 @@ pub enum CaneStatus {
 #[sea_orm(table_name = "cane_library")]
 #[graphql(name = "CaneLibrary")]
 pub struct Model {
-    #[sea_orm(primary_key)]
+    #[sea_orm(primary_key, auto_increment = false)]
     pub barcode: String,
     pub status: CaneStatus,
 }

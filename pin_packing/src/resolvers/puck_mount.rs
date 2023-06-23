@@ -1,6 +1,6 @@
 use crate::tables::{pin_mount, puck_mount};
 use async_graphql::{ComplexObject, Context, Object};
-use chrono::{DateTime, Utc};
+use chrono::Utc;
 use opa_client::subject_authorization;
 use sea_orm::{ActiveValue, DatabaseConnection, EntityTrait, ModelTrait};
 use uuid::Uuid;
@@ -19,20 +19,14 @@ pub struct PuckQuery;
 
 #[Object]
 impl PuckQuery {
-    async fn get_puck(
+    async fn get_puck_mount(
         &self,
         ctx: &Context<'_>,
-        cane_barcode: Uuid,
-        cane_created: DateTime<Utc>,
-        cane_position: i16,
+        id: Uuid,
     ) -> async_graphql::Result<Option<puck_mount::Model>> {
         subject_authorization!("xchemlab.pin_packing.get_puck", ctx).await?;
         let database = ctx.data::<DatabaseConnection>()?;
-        Ok(
-            puck_mount::Entity::find_by_id((cane_barcode, cane_created, cane_position))
-                .one(database)
-                .await?,
-        )
+        Ok(puck_mount::Entity::find_by_id(id).one(database).await?)
     }
 }
 
@@ -44,19 +38,16 @@ impl PuckMutation {
     async fn create_puck(
         &self,
         ctx: &Context<'_>,
-        cane_barcode: Uuid,
-        cane_created: DateTime<Utc>,
-        position: i16,
-        barcode: Uuid,
+        barcode: String,
     ) -> async_graphql::Result<puck_mount::Model> {
         let operator_id = subject_authorization!("xchemlab.pin_packing.create_puck", ctx).await?;
         let database = ctx.data::<DatabaseConnection>()?;
         let puck = puck_mount::ActiveModel {
-            cane_barcode: ActiveValue::Set(cane_barcode),
-            cane_created: ActiveValue::Set(cane_created),
-            position: ActiveValue::Set(position),
+            id: ActiveValue::Set(Uuid::new_v4()),
+            cane_mount_id: ActiveValue::Set(None),
+            cane_location: ActiveValue::Set(None),
             barcode: ActiveValue::Set(barcode),
-            created: ActiveValue::Set(Utc::now()),
+            timestamp: ActiveValue::Set(Utc::now()),
             operator_id: ActiveValue::Set(operator_id),
         };
         Ok(puck_mount::Entity::insert(puck)

@@ -1,6 +1,5 @@
 use super::{
-    cane_mount::CANE_SLOTS,
-    pin_library,
+    crystal, pin_library,
     puck_mount::{self, PUCK_SLOTS},
 };
 use async_graphql::SimpleObject;
@@ -16,18 +15,13 @@ use uuid::Uuid;
 #[sea_orm(table_name = "pin_mount")]
 #[graphql(name = "PinMount")]
 pub struct Model {
-    #[sea_orm(primary_key)]
-    pub cane_barcode: Uuid,
-    #[sea_orm(primary_key)]
-    pub cane_created: DateTime<Utc>,
-    #[sea_orm(primary_key)]
-    pub puck_position: i16,
-    #[sea_orm(primary_key)]
-    pub position: i16,
+    #[sea_orm(primary_key, auto_increment = false)]
+    pub id: Uuid,
+    pub crystal_id: Uuid,
+    pub puck_mount_id: Uuid,
+    pub puck_location: i16,
     pub barcode: String,
-    pub created: DateTime<Utc>,
-    pub crystal_plate: Uuid,
-    pub crystal_well: i16,
+    pub timestamp: DateTime<Utc>,
     pub operator_id: String,
 }
 
@@ -40,11 +34,23 @@ pub enum Relation {
     )]
     LibraryPin,
     #[sea_orm(
+        belongs_to = "crystal::Entity",
+        from = "Column::CrystalId",
+        to = "crystal::Column::Id"
+    )]
+    Crystal,
+    #[sea_orm(
         belongs_to = "puck_mount::Entity",
-        from = "(Column::CaneBarcode, Column::CaneCreated, Column::PuckPosition)",
-        to = "(puck_mount::Column::CaneBarcode, puck_mount::Column::CaneCreated, puck_mount::Column::Position)"
+        from = "Column::PuckMountId",
+        to = "puck_mount::Column::Id"
     )]
     PuckMount,
+}
+
+impl Related<crystal::Entity> for Entity {
+    fn to() -> sea_orm::RelationDef {
+        Relation::Crystal.def()
+    }
 }
 
 impl Related<pin_library::Entity> for Entity {
@@ -65,13 +71,9 @@ impl ActiveModelBehavior for ActiveModel {
     where
         C: ConnectionTrait,
     {
-        (*self.puck_position.as_ref() > 0 && *self.puck_position.as_ref() <= CANE_SLOTS)
+        (*self.puck_location.as_ref() > 0 && *self.puck_location.as_ref() <= PUCK_SLOTS)
             .then_some(())
             .ok_or(DbErr::Custom("Invalid Cane Position".to_string()))?;
-
-        (*self.position.as_ref() > 0 && *self.position.as_ref() <= PUCK_SLOTS)
-            .then_some(())
-            .ok_or(DbErr::Custom("Invalid Puck Position".to_string()))?;
 
         Ok(self)
     }

@@ -17,14 +17,12 @@ pub const PUCK_SLOTS: i16 = 16;
 #[sea_orm(table_name = "puck")]
 #[graphql(name = "Puck", complex)]
 pub struct Model {
-    #[sea_orm(primary_key)]
-    pub cane_barcode: Uuid,
-    #[sea_orm(primary_key)]
-    pub cane_created: DateTime<Utc>,
-    #[sea_orm(primary_key)]
-    pub position: i16,
-    pub barcode: Uuid,
-    pub created: DateTime<Utc>,
+    #[sea_orm(primary_key, auto_increment = false)]
+    pub id: Uuid,
+    pub cane_mount_id: Option<Uuid>,
+    pub cane_location: Option<i16>,
+    pub barcode: String,
+    pub timestamp: DateTime<Utc>,
     pub operator_id: String,
 }
 
@@ -40,8 +38,8 @@ pub enum Relation {
     PinMount,
     #[sea_orm(
         belongs_to = "cane_mount::Entity",
-        from = "(Column::CaneBarcode, Column::CaneCreated)",
-        to = "(cane_mount::Column::Barcode, cane_mount::Column::Created)"
+        from = "Column::CaneMountId",
+        to = "cane_mount::Column::Id"
     )]
     CaneMount,
 }
@@ -70,9 +68,17 @@ impl ActiveModelBehavior for ActiveModel {
     where
         C: ConnectionTrait,
     {
-        (*self.position.as_ref() > 0 && *self.position.as_ref() <= CANE_SLOTS)
+        (self.cane_mount_id.as_ref().is_some() == self.cane_location.as_ref().is_some())
             .then_some(())
-            .ok_or(DbErr::Custom("Invalid Cane Position".to_string()))?;
+            .ok_or(DbErr::Custom(
+                "Both CaneMountId and CaneLocation must be non-null together".to_string(),
+            ))?;
+
+        (self.cane_location.as_ref().is_none()
+            || *self.cane_location.as_ref() > Some(0)
+                && *self.cane_location.as_ref() <= Some(CANE_SLOTS))
+        .then_some(())
+        .ok_or(DbErr::Custom("Invalid Cane Position".to_string()))?;
 
         Ok(self)
     }

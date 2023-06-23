@@ -1,10 +1,29 @@
-use crate::tables;
+use crate::tables::{self, cane_library, crystal, pin_library, puck_library};
 use sea_orm::{ConnectionTrait, DatabaseConnection, DbErr, Schema};
 
 pub async fn create_tables(connection: &DatabaseConnection) -> Result<(), DbErr> {
     let builder = connection.get_database_backend();
     let schema = Schema::new(builder);
 
+    connection
+        .execute(builder.build(&schema.create_enum_from_active_enum::<crystal::CrystalState>()))
+        .await?;
+    connection
+        .execute(builder.build(&schema.create_enum_from_active_enum::<crystal::CompoundState>()))
+        .await?;
+    connection
+        .execute(
+            builder.build(
+                schema
+                    .create_table_from_entity(crystal::Entity)
+                    .if_not_exists(),
+            ),
+        )
+        .await?;
+
+    connection
+        .execute(builder.build(&schema.create_enum_from_active_enum::<cane_library::CaneStatus>()))
+        .await?;
     connection
         .execute(
             builder.build(
@@ -23,6 +42,10 @@ pub async fn create_tables(connection: &DatabaseConnection) -> Result<(), DbErr>
             ),
         )
         .await?;
+
+    connection
+        .execute(builder.build(&schema.create_enum_from_active_enum::<puck_library::PuckStatus>()))
+        .await?;
     connection
         .execute(
             builder.build(
@@ -40,6 +63,10 @@ pub async fn create_tables(connection: &DatabaseConnection) -> Result<(), DbErr>
                     .if_not_exists(),
             ),
         )
+        .await?;
+
+    connection
+        .execute(builder.build(&schema.create_enum_from_active_enum::<pin_library::PinStatus>()))
         .await?;
     connection
         .execute(
