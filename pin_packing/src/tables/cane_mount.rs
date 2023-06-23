@@ -1,11 +1,10 @@
-use super::puck;
+use super::{cane_library, puck_mount};
 use async_graphql::SimpleObject;
 use chrono::{DateTime, Utc};
 use sea_orm::{
     ActiveModelBehavior, DeriveEntityModel, DerivePrimaryKey, DeriveRelation, EntityTrait,
     EnumIter, PrimaryKeyTrait, Related, RelationTrait,
 };
-use uuid::Uuid;
 
 pub const CANE_SLOTS: i16 = 7;
 
@@ -14,7 +13,7 @@ pub const CANE_SLOTS: i16 = 7;
 #[graphql(name = "Cane", complex)]
 pub struct Model {
     #[sea_orm(primary_key)]
-    pub barcode: Uuid,
+    pub barcode: String,
     #[sea_orm(primary_key)]
     pub created: DateTime<Utc>,
     pub operator_id: String,
@@ -22,13 +21,25 @@ pub struct Model {
 
 #[derive(Debug, Clone, Copy, EnumIter, DeriveRelation)]
 pub enum Relation {
-    #[sea_orm(has_many = "puck::Entity")]
-    Puck,
+    #[sea_orm(
+        belongs_to = "cane_library::Entity",
+        from = "Column::Barcode",
+        to = "cane_library::Column::Barcode"
+    )]
+    LibraryCane,
+    #[sea_orm(has_many = "puck_mount::Entity")]
+    PuckMount,
 }
 
-impl Related<puck::Entity> for Entity {
+impl Related<cane_library::Entity> for Entity {
     fn to() -> sea_orm::RelationDef {
-        Relation::Puck.def()
+        Relation::LibraryCane.def()
+    }
+}
+
+impl Related<puck_mount::Entity> for Entity {
+    fn to() -> sea_orm::RelationDef {
+        Relation::PuckMount.def()
     }
 }
 
