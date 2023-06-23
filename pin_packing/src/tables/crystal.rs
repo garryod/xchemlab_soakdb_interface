@@ -45,9 +45,10 @@ pub struct Model {
     pub id: Uuid,
     pub crystal_plate_id: Uuid,
     pub crystal_plate_well: i16,
-    pub timestamp: DateTime<Utc>,
     pub crystal_state: CrystalState,
     pub compound_state: CompoundState,
+    pub timestamp: DateTime<Utc>,
+    pub operator_id: String,
 }
 
 #[derive(Debug, Clone, Copy, EnumIter, DeriveRelation)]
