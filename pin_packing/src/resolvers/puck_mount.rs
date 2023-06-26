@@ -1,5 +1,5 @@
 use crate::tables::{
-    pin_mount,
+    cane_mount, pin_mount,
     puck_library::{self, PuckStatus},
     puck_mount,
 };
@@ -17,6 +17,12 @@ impl puck_mount::Model {
         subject_authorization!("xchemlab.pin_packing.get_pin", ctx).await?;
         let database = ctx.data::<DatabaseConnection>()?;
         Ok(self.find_related(pin_mount::Entity).all(database).await?)
+    }
+
+    async fn cane(&self, ctx: &Context<'_>) -> async_graphql::Result<Option<cane_mount::Model>> {
+        subject_authorization!("xchemlab.pin_packing.get_cane", ctx).await?;
+        let database = ctx.data::<DatabaseConnection>()?;
+        Ok(self.find_related(cane_mount::Entity).one(database).await?)
     }
 }
 
