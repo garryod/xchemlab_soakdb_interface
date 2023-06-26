@@ -1,9 +1,23 @@
-use crate::tables::crystal::{self, CompoundState, CrystalState};
-use async_graphql::{Context, Object};
+use crate::tables::{
+    crystal::{self, CompoundState, CrystalState},
+    pin_mount,
+};
+use async_graphql::{ComplexObject, Context, Object};
 use chrono::Utc;
 use opa_client::subject_authorization;
-use sea_orm::{ActiveValue, DatabaseConnection, EntityTrait};
+use sea_orm::{ActiveValue, DatabaseConnection, EntityTrait, ModelTrait};
 use uuid::Uuid;
+
+#[ComplexObject]
+impl crystal::Model {
+    async fn pin_mount(
+        &self,
+        ctx: &Context<'_>,
+    ) -> async_graphql::Result<Option<pin_mount::Model>> {
+        let database = ctx.data::<DatabaseConnection>()?;
+        Ok(self.find_related(pin_mount::Entity).one(database).await?)
+    }
+}
 
 #[derive(Debug, Clone, Default)]
 pub struct CrystalQuery;

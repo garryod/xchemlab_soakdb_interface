@@ -13,7 +13,7 @@ use uuid::Uuid;
 
 #[derive(Debug, Clone, PartialEq, Eq, DeriveEntityModel, SimpleObject)]
 #[sea_orm(table_name = "pin_mount")]
-#[graphql(name = "MountedPin")]
+#[graphql(name = "MountedPin", complex)]
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub id: Uuid,

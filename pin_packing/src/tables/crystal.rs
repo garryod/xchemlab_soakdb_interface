@@ -1,9 +1,10 @@
+use crate::tables::pin_mount;
 use async_graphql::{Enum, SimpleObject};
 use axum::async_trait;
 use chrono::{DateTime, Utc};
 use sea_orm::{
     ActiveModelBehavior, DeriveActiveEnum, DeriveEntityModel, DerivePrimaryKey, DeriveRelation,
-    EntityTrait, EnumIter, PrimaryKeyTrait,
+    EntityTrait, EnumIter, PrimaryKeyTrait, Related, RelationTrait,
 };
 use uuid::Uuid;
 
@@ -38,8 +39,8 @@ pub enum CompoundState {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, DeriveEntityModel, SimpleObject)]
-#[sea_orm(table_name = "sample")]
-#[graphql(name = "Sample")]
+#[sea_orm(table_name = "crystal")]
+#[graphql(name = "Crystal", complex)]
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub id: Uuid,
@@ -52,7 +53,16 @@ pub struct Model {
 }
 
 #[derive(Debug, Clone, Copy, EnumIter, DeriveRelation)]
-pub enum Relation {}
+pub enum Relation {
+    #[sea_orm(has_one = "pin_mount::Entity")]
+    PinMount,
+}
+
+impl Related<pin_mount::Entity> for Entity {
+    fn to() -> sea_orm::RelationDef {
+        Relation::PinMount.def()
+    }
+}
 
 #[async_trait]
 impl ActiveModelBehavior for ActiveModel {}

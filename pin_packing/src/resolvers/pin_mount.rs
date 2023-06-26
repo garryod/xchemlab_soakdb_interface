@@ -1,12 +1,28 @@
 use crate::tables::{
+    crystal,
     pin_library::{self, PinStatus},
     pin_mount,
 };
-use async_graphql::{Context, Object};
+use async_graphql::{ComplexObject, Context, Object};
 use chrono::Utc;
 use opa_client::subject_authorization;
-use sea_orm::{ActiveValue, DatabaseConnection, EntityTrait, IntoActiveModel, TransactionTrait};
+use sea_orm::{
+    ActiveValue, DatabaseConnection, EntityTrait, IntoActiveModel, ModelTrait, TransactionTrait,
+};
 use uuid::Uuid;
+
+#[ComplexObject]
+impl pin_mount::Model {
+    async fn crystal(&self, ctx: &Context<'_>) -> async_graphql::Result<crystal::Model> {
+        subject_authorization!("xchemlab.pin_packing.get_crystal", ctx).await?;
+        let database = ctx.data::<DatabaseConnection>()?;
+        Ok(self
+            .find_related(crystal::Entity)
+            .one(database)
+            .await?
+            .ok_or("Could not find mounted crystal")?)
+    }
+}
 
 #[derive(Debug, Clone, Default)]
 pub struct PinMountQuery;
