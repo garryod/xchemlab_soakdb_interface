@@ -21,7 +21,7 @@ pub enum CaneStatus {
 
 #[derive(Debug, Clone, PartialEq, Eq, DeriveEntityModel, SimpleObject)]
 #[sea_orm(table_name = "cane_library")]
-#[graphql(name = "LibraryCane")]
+#[graphql(name = "LibraryCane", complex)]
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub barcode: String,

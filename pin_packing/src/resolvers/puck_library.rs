@@ -1,7 +1,19 @@
-use crate::tables::puck_library::{self, PuckStatus};
-use async_graphql::{Context, Object};
+use crate::tables::{
+    puck_library::{self, PuckStatus},
+    puck_mount,
+};
+use async_graphql::{ComplexObject, Context, Object};
 use opa_client::subject_authorization;
-use sea_orm::{ActiveValue, DatabaseConnection, EntityTrait, IntoActiveModel};
+use sea_orm::{ActiveValue, DatabaseConnection, EntityTrait, IntoActiveModel, ModelTrait};
+
+#[ComplexObject]
+impl puck_library::Model {
+    async fn mounts(&self, ctx: &Context<'_>) -> async_graphql::Result<Vec<puck_mount::Model>> {
+        subject_authorization!("xchemlab.pin_packing.get_puck", ctx).await?;
+        let database = ctx.data::<DatabaseConnection>()?;
+        Ok(self.find_related(puck_mount::Entity).all(database).await?)
+    }
+}
 
 #[derive(Debug, Clone, Default)]
 pub struct PuckLibraryQuery;

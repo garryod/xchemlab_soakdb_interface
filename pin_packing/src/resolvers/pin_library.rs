@@ -1,7 +1,19 @@
-use crate::tables::pin_library::{self, PinStatus};
-use async_graphql::{Context, Object};
+use crate::tables::{
+    pin_library::{self, PinStatus},
+    pin_mount,
+};
+use async_graphql::{ComplexObject, Context, Object};
 use opa_client::subject_authorization;
-use sea_orm::{ActiveValue, DatabaseConnection, EntityTrait, IntoActiveModel};
+use sea_orm::{ActiveValue, DatabaseConnection, EntityTrait, IntoActiveModel, ModelTrait};
+
+#[ComplexObject]
+impl pin_library::Model {
+    async fn mounts(&self, ctx: &Context<'_>) -> async_graphql::Result<Vec<pin_mount::Model>> {
+        subject_authorization!("xchemlab.pin_packing.get_pin", ctx).await?;
+        let database = ctx.data::<DatabaseConnection>()?;
+        Ok(self.find_related(pin_mount::Entity).all(database).await?)
+    }
+}
 
 #[derive(Debug, Clone, Default)]
 pub struct PinLibraryQuery;

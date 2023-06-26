@@ -21,7 +21,7 @@ pub enum PuckStatus {
 
 #[derive(Debug, Clone, PartialEq, Eq, DeriveEntityModel, SimpleObject)]
 #[sea_orm(table_name = "puck_library")]
-#[graphql(name = "LibraryPuck")]
+#[graphql(name = "LibraryPuck", complex)]
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub barcode: String,
