@@ -29,7 +29,7 @@ impl CrystalQuery {
         ctx: &Context<'_>,
         id: Uuid,
     ) -> async_graphql::Result<Option<crystal::Model>> {
-        subject_authorization!("xchemlab.pin_packing.get_crystal", ctx).await?;
+        subject_authorization!("xchemlab.pin_packing.read_crystal", ctx).await?;
         let database = ctx.data::<DatabaseConnection>()?;
         Ok(crystal::Entity::find_by_id(id).one(database).await?)
     }
@@ -48,8 +48,7 @@ impl CrystalMutation {
         crystal_state: CrystalState,
         compound_state: CompoundState,
     ) -> async_graphql::Result<crystal::Model> {
-        let operator_id =
-            subject_authorization!("xchemlab.pin_packing.create_crystal", ctx).await?;
+        let operator_id = subject_authorization!("xchemlab.pin_packing.write_crystal", ctx).await?;
         let database = ctx.data::<DatabaseConnection>()?;
         let crystal = crystal::ActiveModel {
             id: ActiveValue::Set(Uuid::new_v4()),

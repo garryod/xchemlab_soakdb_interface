@@ -9,7 +9,7 @@ use sea_orm::{ActiveValue, DatabaseConnection, EntityTrait, IntoActiveModel, Mod
 #[ComplexObject]
 impl pin_library::Model {
     async fn mounts(&self, ctx: &Context<'_>) -> async_graphql::Result<Vec<pin_mount::Model>> {
-        subject_authorization!("xchemlab.pin_packing.get_pin", ctx).await?;
+        subject_authorization!("xchemlab.pin_packing.read_pin_mount", ctx).await?;
         let database = ctx.data::<DatabaseConnection>()?;
         Ok(self.find_related(pin_mount::Entity).all(database).await?)
     }
@@ -24,7 +24,7 @@ impl PinLibraryQuery {
         &self,
         ctx: &Context<'_>,
     ) -> async_graphql::Result<Vec<pin_library::Model>> {
-        subject_authorization!("xchemlab.pin_packing.get_library_pin", ctx).await?;
+        subject_authorization!("xchemlab.pin_packing.read_pin_library", ctx).await?;
         let database = ctx.data::<DatabaseConnection>()?;
         Ok(pin_library::Entity::find().all(database).await?)
     }
@@ -41,7 +41,7 @@ impl PinLibraryMutation {
         barcode: String,
         #[graphql(desc = "Mounting loop size in micrometers")] loop_size: i16,
     ) -> async_graphql::Result<pin_library::Model> {
-        subject_authorization!("xchemlab.pin_packing.register_library_pin", ctx).await?;
+        subject_authorization!("xchemlab.pin_packing.write_pin_library", ctx).await?;
         let database = ctx.data::<DatabaseConnection>()?;
         let pin = pin_library::ActiveModel {
             barcode: ActiveValue::Set(barcode),
@@ -59,7 +59,7 @@ impl PinLibraryMutation {
         barcode: String,
         status: PinStatus,
     ) -> async_graphql::Result<pin_library::Model> {
-        subject_authorization!("xchemlab.pin_packing.update_library_pin", ctx).await?;
+        subject_authorization!("xchemlab.pin_packing.write_pin_library", ctx).await?;
         let database = ctx.data::<DatabaseConnection>()?;
         let mut pin = pin_library::Entity::find_by_id(&barcode)
             .one(database)

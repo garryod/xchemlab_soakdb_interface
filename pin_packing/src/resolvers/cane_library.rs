@@ -9,7 +9,7 @@ use sea_orm::{ActiveValue, DatabaseConnection, EntityTrait, IntoActiveModel, Mod
 #[ComplexObject]
 impl cane_library::Model {
     async fn mounts(&self, ctx: &Context<'_>) -> async_graphql::Result<Vec<cane_mount::Model>> {
-        subject_authorization!("xchemlab.pin_packing.get_cane", ctx).await?;
+        subject_authorization!("xchemlab.pin_packing.read_cane_mount", ctx).await?;
         let database = ctx.data::<DatabaseConnection>()?;
         Ok(self.find_related(cane_mount::Entity).all(database).await?)
     }
@@ -24,7 +24,7 @@ impl CaneLibraryQuery {
         &self,
         ctx: &Context<'_>,
     ) -> async_graphql::Result<Vec<cane_library::Model>> {
-        subject_authorization!("xchemlab.pin_packing.get_library_canes", ctx).await?;
+        subject_authorization!("xchemlab.pin_packing.read_cane_library", ctx).await?;
         let database = ctx.data::<DatabaseConnection>()?;
         Ok(cane_library::Entity::find().all(database).await?)
     }
@@ -40,7 +40,7 @@ impl CaneLibraryMutation {
         ctx: &Context<'_>,
         barcode: String,
     ) -> async_graphql::Result<cane_library::Model> {
-        subject_authorization!("xchemlab.pin_packing.register_library_cane", ctx).await?;
+        subject_authorization!("xchemlab.pin_packing.write_cane_library", ctx).await?;
         let database = ctx.data::<DatabaseConnection>()?;
         let cane = cane_library::ActiveModel {
             barcode: ActiveValue::Set(barcode),
@@ -57,7 +57,7 @@ impl CaneLibraryMutation {
         barcode: String,
         status: CaneStatus,
     ) -> async_graphql::Result<cane_library::Model> {
-        subject_authorization!("xchemlab.pin_packing.update_library_cane", ctx).await?;
+        subject_authorization!("xchemlab.pin_packing.write_cane_library", ctx).await?;
         let database = ctx.data::<DatabaseConnection>()?;
         let mut cane = cane_library::Entity::find_by_id(&barcode)
             .one(database)

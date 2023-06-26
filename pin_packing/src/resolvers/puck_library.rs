@@ -9,7 +9,7 @@ use sea_orm::{ActiveValue, DatabaseConnection, EntityTrait, IntoActiveModel, Mod
 #[ComplexObject]
 impl puck_library::Model {
     async fn mounts(&self, ctx: &Context<'_>) -> async_graphql::Result<Vec<puck_mount::Model>> {
-        subject_authorization!("xchemlab.pin_packing.get_puck", ctx).await?;
+        subject_authorization!("xchemlab.pin_packing.read_puck_mount", ctx).await?;
         let database = ctx.data::<DatabaseConnection>()?;
         Ok(self.find_related(puck_mount::Entity).all(database).await?)
     }
@@ -24,7 +24,7 @@ impl PuckLibraryQuery {
         &self,
         ctx: &Context<'_>,
     ) -> async_graphql::Result<Vec<puck_library::Model>> {
-        subject_authorization!("xchemlab.pin_packing.get_library_puck", ctx).await?;
+        subject_authorization!("xchemlab.pin_packing.read_puck_library", ctx).await?;
         let database = ctx.data::<DatabaseConnection>()?;
         Ok(puck_library::Entity::find().all(database).await?)
     }
@@ -40,7 +40,7 @@ impl PuckLibraryMutation {
         ctx: &Context<'_>,
         barcode: String,
     ) -> async_graphql::Result<puck_library::Model> {
-        subject_authorization!("xchemlab.pin_packing.register_library_puck", ctx).await?;
+        subject_authorization!("xchemlab.pin_packing.write_puck_library", ctx).await?;
         let database = ctx.data::<DatabaseConnection>()?;
         let puck = puck_library::ActiveModel {
             barcode: ActiveValue::Set(barcode),
@@ -57,7 +57,7 @@ impl PuckLibraryMutation {
         barcode: String,
         status: PuckStatus,
     ) -> async_graphql::Result<puck_library::Model> {
-        subject_authorization!("xchemlab.pin_packing.update_library_puck", ctx).await?;
+        subject_authorization!("xchemlab.pin_packing.write_puck_library", ctx).await?;
         let database = ctx.data::<DatabaseConnection>()?;
         let mut puck = puck_library::Entity::find_by_id(&barcode)
             .one(database)

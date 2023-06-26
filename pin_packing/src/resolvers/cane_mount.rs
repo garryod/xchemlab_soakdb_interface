@@ -13,7 +13,7 @@ use uuid::Uuid;
 #[ComplexObject]
 impl cane_mount::Model {
     async fn pucks(&self, ctx: &Context<'_>) -> async_graphql::Result<Vec<puck_mount::Model>> {
-        subject_authorization!("xchemlab.pin_packing.get_puck", ctx).await?;
+        subject_authorization!("xchemlab.pin_packing.read_puck_mount", ctx).await?;
         let database = ctx.data::<DatabaseConnection>()?;
         Ok(self.find_related(puck_mount::Entity).all(database).await?)
     }
@@ -29,7 +29,7 @@ impl CaneMountQuery {
         ctx: &Context<'_>,
         id: Uuid,
     ) -> async_graphql::Result<Option<cane_mount::Model>> {
-        subject_authorization!("xchemlab.pin_packing.get_cane", ctx).await?;
+        subject_authorization!("xchemlab.pin_packing.read_cane_mount", ctx).await?;
         let database = ctx.data::<DatabaseConnection>()?;
         Ok(cane_mount::Entity::find_by_id(id).one(database).await?)
     }
@@ -38,7 +38,7 @@ impl CaneMountQuery {
         &self,
         ctx: &Context<'_>,
     ) -> async_graphql::Result<Vec<cane_mount::Model>> {
-        subject_authorization!("xchemlab.pin_packing.get_cane", ctx).await?;
+        subject_authorization!("xchemlab.pin_packing.read_cane_mount", ctx).await?;
         let database = ctx.data::<DatabaseConnection>()?;
         Ok(cane_mount::Entity::find().all(database).await?)
     }
@@ -54,7 +54,8 @@ impl CaneMountMutation {
         ctx: &Context<'_>,
         barcode: String,
     ) -> async_graphql::Result<cane_mount::Model> {
-        let operator_id = subject_authorization!("xchemlab.pin_packing.create_cane", ctx).await?;
+        let operator_id =
+            subject_authorization!("xchemlab.pin_packing.write_cane_mount", ctx).await?;
         let database = ctx.data::<DatabaseConnection>()?;
 
         let library_cane = cane_library::Entity::find_by_id(&barcode)

@@ -3,19 +3,35 @@ package xchemlab.pin_packing
 import data.xchemlab
 import future.keywords.if
 
-default get_pin := {"allowed": false}
+default read_crystal = {"allow": false}
 
-default create_pin := {"allow": false}
+default write_crystal = {"allow": false}
 
-default get_puck := {"allowed": false}
+default read_pin_library = {"allow": false}
 
-default create_puck = {"allow": false}
+default write_pin_library = {"allow": false}
 
-default get_cane := {"allowed": false}
+default read_pin_mount := {"allowed": false}
 
-default create_cane := {"allowed": false}
+default write_pin_mount := {"allow": false}
 
-get_pin= response if {
+default read_puck_library = {"allow": false}
+
+default write_puck_library = {"allow": false}
+
+default read_puck_mount := {"allowed": false}
+
+default write_puck_mount = {"allow": false}
+
+default read_cane_library = {"allow": false}
+
+default write_cane_library = {"allow": false}
+
+default read_cane_mount := {"allowed": false}
+
+default write_cane_mount := {"allowed": false}
+
+read_crystal = response if {
 	xchemlab.valid_token
 	response := {
 		"allowed": true,
@@ -23,7 +39,7 @@ get_pin= response if {
 	}
 }
 
-create_pin= response if {
+write_crystal = response if {
 	xchemlab.valid_token
 	response := {
 		"allowed": true,
@@ -31,7 +47,7 @@ create_pin= response if {
 	}
 }
 
-get_puck = response if {
+read_pin_library = response if {
 	xchemlab.valid_token
 	response := {
 		"allowed": true,
@@ -39,7 +55,7 @@ get_puck = response if {
 	}
 }
 
-create_puck= response if {
+write_pin_library = response if {
 	xchemlab.valid_token
 	response := {
 		"allowed": true,
@@ -47,7 +63,7 @@ create_puck= response if {
 	}
 }
 
-get_cane := response if {
+read_pin_mount = response if {
 	xchemlab.valid_token
 	response := {
 		"allowed": true,
@@ -55,7 +71,71 @@ get_cane := response if {
 	}
 }
 
-create_cane = response if {
+write_pin_mount = response if {
+	xchemlab.valid_token
+	response := {
+		"allowed": true,
+		"subject": xchemlab.subject,
+	}
+}
+
+read_puck_library = response if {
+	xchemlab.valid_token
+	response := {
+		"allowed": true,
+		"subject": xchemlab.subject,
+	}
+}
+
+write_puck_library = response if {
+	xchemlab.valid_token
+	response := {
+		"allowed": true,
+		"subject": xchemlab.subject,
+	}
+}
+
+read_puck_mount = response if {
+	xchemlab.valid_token
+	response := {
+		"allowed": true,
+		"subject": xchemlab.subject,
+	}
+}
+
+write_puck_mount = response if {
+	xchemlab.valid_token
+	response := {
+		"allowed": true,
+		"subject": xchemlab.subject,
+	}
+}
+
+read_cane_library = response if {
+	xchemlab.valid_token
+	response := {
+		"allowed": true,
+		"subject": xchemlab.subject,
+	}
+}
+
+write_cane_library = response if {
+	xchemlab.valid_token
+	response := {
+		"allowed": true,
+		"subject": xchemlab.subject,
+	}
+}
+
+read_cane_mount = response if {
+	xchemlab.valid_token
+	response := {
+		"allowed": true,
+		"subject": xchemlab.subject,
+	}
+}
+
+write_cane_mount = response if {
 	xchemlab.valid_token
 	response := {
 		"allowed": true,

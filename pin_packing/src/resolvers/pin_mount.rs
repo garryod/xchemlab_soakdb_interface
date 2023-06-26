@@ -14,7 +14,7 @@ use uuid::Uuid;
 #[ComplexObject]
 impl pin_mount::Model {
     async fn crystal(&self, ctx: &Context<'_>) -> async_graphql::Result<crystal::Model> {
-        subject_authorization!("xchemlab.pin_packing.get_crystal", ctx).await?;
+        subject_authorization!("xchemlab.pin_packing.read_crystal", ctx).await?;
         let database = ctx.data::<DatabaseConnection>()?;
         Ok(self
             .find_related(crystal::Entity)
@@ -24,7 +24,7 @@ impl pin_mount::Model {
     }
 
     async fn puck(&self, ctx: &Context<'_>) -> async_graphql::Result<puck_mount::Model> {
-        subject_authorization!("xchemlab.pin_packing.get_puck", ctx).await?;
+        subject_authorization!("xchemlab.pin_packing.read_puck_mount", ctx).await?;
         let database = ctx.data::<DatabaseConnection>()?;
         Ok(self
             .find_related(puck_mount::Entity)
@@ -44,7 +44,7 @@ impl PinMountQuery {
         ctx: &Context<'_>,
         id: Uuid,
     ) -> async_graphql::Result<Option<pin_mount::Model>> {
-        subject_authorization!("xchemlab.pin_packing.get_pin", ctx).await?;
+        subject_authorization!("xchemlab.pin_packing.read_pin_mount", ctx).await?;
         let database = ctx.data::<DatabaseConnection>()?;
         Ok(pin_mount::Entity::find_by_id(id).one(database).await?)
     }
@@ -63,7 +63,8 @@ impl PinMountMutation {
         puck_location: i16,
         barcode: String,
     ) -> async_graphql::Result<pin_mount::Model> {
-        let operator_id = subject_authorization!("xchemlab.pin_packing.create_pin", ctx).await?;
+        let operator_id =
+            subject_authorization!("xchemlab.pin_packing.write_pin_mount", ctx).await?;
         let database = ctx.data::<DatabaseConnection>()?;
 
         let library_pin = pin_library::Entity::find_by_id(&barcode)
