@@ -1,7 +1,7 @@
 use crate::tables::{
     crystal,
     pin_library::{self, PinStatus},
-    pin_mount,
+    pin_mount, puck_mount,
 };
 use async_graphql::{ComplexObject, Context, Object};
 use chrono::Utc;
@@ -21,6 +21,16 @@ impl pin_mount::Model {
             .one(database)
             .await?
             .ok_or("Could not find mounted crystal")?)
+    }
+
+    async fn puck(&self, ctx: &Context<'_>) -> async_graphql::Result<puck_mount::Model> {
+        subject_authorization!("xchemlab.pin_packing.get_puck", ctx).await?;
+        let database = ctx.data::<DatabaseConnection>()?;
+        Ok(self
+            .find_related(puck_mount::Entity)
+            .one(database)
+            .await?
+            .ok_or("Could not find mounted puck")?)
     }
 }
 
