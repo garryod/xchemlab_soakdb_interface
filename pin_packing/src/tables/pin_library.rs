@@ -13,10 +13,10 @@ pub enum PinStatus {
     Ready,
     #[sea_orm(string_value = "Occupied")]
     Occupied,
-    #[sea_orm(string_value = "Broken")]
-    Broken,
     #[sea_orm(string_value = "Dirty")]
     Dirty,
+    #[sea_orm(string_value = "Broken")]
+    Broken,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, DeriveEntityModel, SimpleObject)]
@@ -25,6 +25,8 @@ pub enum PinStatus {
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub barcode: String,
+    /// Mounting loop size in micrometers.
+    pub loop_size: i16,
     pub status: PinStatus,
 }
 
