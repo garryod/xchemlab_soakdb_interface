@@ -1,5 +1,6 @@
 use crate::resolvers::{
-    cane_mount::{CaneMutation, CaneQuery},
+    cane_library::{CaneLibraryMutation, CaneLibraryQuery},
+    cane_mount::{CaneMountMutation, CaneMountQuery},
     crystal::{CrystalMutation, CrystalQuery},
     pin_library::{PinLibraryMutation, PinLibraryQuery},
     pin_mount::{PinMountMutation, PinMountQuery},
@@ -21,7 +22,8 @@ pub type RootSchema = Schema<RootQuery, RootMutation, EmptySubscription>;
 #[derive(Debug, Clone, MergedObject, Default)]
 pub struct RootQuery(
     CrystalQuery,
-    CaneQuery,
+    CaneLibraryQuery,
+    CaneMountQuery,
     PuckLibraryQuery,
     PuckMountQuery,
     PinLibraryQuery,
@@ -31,7 +33,8 @@ pub struct RootQuery(
 #[derive(Debug, Clone, MergedObject, Default)]
 pub struct RootMutation(
     CrystalMutation,
-    CaneMutation,
+    CaneLibraryMutation,
+    CaneMountMutation,
     PuckLibraryMutation,
     PuckMountMutation,
     PinLibraryMutation,

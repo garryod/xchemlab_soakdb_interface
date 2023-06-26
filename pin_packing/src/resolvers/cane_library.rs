@@ -1,0 +1,58 @@
+use crate::tables::cane_library::{self, CaneStatus};
+use async_graphql::{Context, Object};
+use opa_client::subject_authorization;
+use sea_orm::{ActiveValue, DatabaseConnection, EntityTrait, IntoActiveModel};
+
+#[derive(Debug, Clone, Default)]
+pub struct CaneLibraryQuery;
+
+#[Object]
+impl CaneLibraryQuery {
+    async fn library_canes(
+        &self,
+        ctx: &Context<'_>,
+    ) -> async_graphql::Result<Vec<cane_library::Model>> {
+        subject_authorization!("xchemlab.pin_packing.get_library_canes", ctx).await?;
+        let database = ctx.data::<DatabaseConnection>()?;
+        Ok(cane_library::Entity::find().all(database).await?)
+    }
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct CaneLibraryMutation;
+
+#[Object]
+impl CaneLibraryMutation {
+    async fn register_library_cane(
+        &self,
+        ctx: &Context<'_>,
+        barcode: String,
+    ) -> async_graphql::Result<cane_library::Model> {
+        subject_authorization!("xchemlab.pin_packing.register_library_cane", ctx).await?;
+        let database = ctx.data::<DatabaseConnection>()?;
+        let cane = cane_library::ActiveModel {
+            barcode: ActiveValue::Set(barcode),
+            status: ActiveValue::Set(CaneStatus::Ready),
+        };
+        Ok(cane_library::Entity::insert(cane)
+            .exec_with_returning(database)
+            .await?)
+    }
+
+    async fn update_library_cane_status(
+        &self,
+        ctx: &Context<'_>,
+        barcode: String,
+        status: CaneStatus,
+    ) -> async_graphql::Result<cane_library::Model> {
+        subject_authorization!("xchemlab.pin_packing.update_library_cane", ctx).await?;
+        let database = ctx.data::<DatabaseConnection>()?;
+        let mut cane = cane_library::Entity::find_by_id(&barcode)
+            .one(database)
+            .await?
+            .ok_or(format!("Could not find cane with barcode '{barcode}'"))?
+            .into_active_model();
+        cane.status = ActiveValue::Set(status);
+        Ok(cane_library::Entity::update(cane).exec(database).await?)
+    }
+}
