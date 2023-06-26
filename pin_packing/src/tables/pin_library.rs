@@ -20,8 +20,8 @@ pub enum PinStatus {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, DeriveEntityModel, SimpleObject)]
-#[sea_orm(table_name = "pin")]
-#[graphql(name = "Pins")]
+#[sea_orm(table_name = "pin_library")]
+#[graphql(name = "LibraryPin")]
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub barcode: String,

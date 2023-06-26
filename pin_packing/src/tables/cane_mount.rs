@@ -10,8 +10,8 @@ use uuid::Uuid;
 pub const CANE_SLOTS: i16 = 7;
 
 #[derive(Debug, Clone, PartialEq, Eq, DeriveEntityModel, SimpleObject)]
-#[sea_orm(table_name = "cane")]
-#[graphql(name = "Cane", complex)]
+#[sea_orm(table_name = "cane_mount")]
+#[graphql(name = "MountedCane", complex)]
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub id: Uuid,

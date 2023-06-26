@@ -14,8 +14,8 @@ use uuid::Uuid;
 pub const PUCK_SLOTS: i16 = 16;
 
 #[derive(Debug, Clone, PartialEq, Eq, DeriveEntityModel, SimpleObject)]
-#[sea_orm(table_name = "puck")]
-#[graphql(name = "Puck", complex)]
+#[sea_orm(table_name = "puck_mount")]
+#[graphql(name = "MountedPuck", complex)]
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub id: Uuid,
