@@ -3,7 +3,8 @@ use crate::resolvers::{
     crystal::{CrystalMutation, CrystalQuery},
     pin_library::{PinLibraryMutation, PinLibraryQuery},
     pin_mount::{PinMountMutation, PinMountQuery},
-    puck_mount::{PuckMutation, PuckQuery},
+    puck_library::{PuckLibraryMutation, PuckLibraryQuery},
+    puck_mount::{PuckMountMutation, PuckMountQuery},
 };
 use async_graphql::{EmptySubscription, MergedObject, Schema, SchemaBuilder};
 
@@ -21,7 +22,8 @@ pub type RootSchema = Schema<RootQuery, RootMutation, EmptySubscription>;
 pub struct RootQuery(
     CrystalQuery,
     CaneQuery,
-    PuckQuery,
+    PuckLibraryQuery,
+    PuckMountQuery,
     PinLibraryQuery,
     PinMountQuery,
 );
@@ -30,7 +32,8 @@ pub struct RootQuery(
 pub struct RootMutation(
     CrystalMutation,
     CaneMutation,
-    PuckMutation,
+    PuckLibraryMutation,
+    PuckMountMutation,
     PinLibraryMutation,
     PinMountMutation,
 );

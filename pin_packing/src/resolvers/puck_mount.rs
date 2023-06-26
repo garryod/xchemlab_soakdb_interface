@@ -1,8 +1,14 @@
-use crate::tables::{pin_mount, puck_mount};
+use crate::tables::{
+    pin_mount,
+    puck_library::{self, PuckStatus},
+    puck_mount,
+};
 use async_graphql::{ComplexObject, Context, Object};
 use chrono::Utc;
 use opa_client::subject_authorization;
-use sea_orm::{ActiveValue, DatabaseConnection, EntityTrait, ModelTrait};
+use sea_orm::{
+    ActiveValue, DatabaseConnection, EntityTrait, IntoActiveModel, ModelTrait, TransactionTrait,
+};
 use uuid::Uuid;
 
 #[ComplexObject]
@@ -15,10 +21,10 @@ impl puck_mount::Model {
 }
 
 #[derive(Debug, Clone, Default)]
-pub struct PuckQuery;
+pub struct PuckMountQuery;
 
 #[Object]
-impl PuckQuery {
+impl PuckMountQuery {
     async fn get_puck_mount(
         &self,
         ctx: &Context<'_>,
@@ -31,10 +37,10 @@ impl PuckQuery {
 }
 
 #[derive(Debug, Clone, Default)]
-pub struct PuckMutation;
+pub struct PuckMountMutation;
 
 #[Object]
-impl PuckMutation {
+impl PuckMountMutation {
     async fn create_puck(
         &self,
         ctx: &Context<'_>,
@@ -42,6 +48,16 @@ impl PuckMutation {
     ) -> async_graphql::Result<puck_mount::Model> {
         let operator_id = subject_authorization!("xchemlab.pin_packing.create_puck", ctx).await?;
         let database = ctx.data::<DatabaseConnection>()?;
+
+        let library_puck = puck_library::Entity::find_by_id(&barcode)
+            .one(database)
+            .await?
+            .ok_or(format!("Could not find puck with barcode '{barcode}'"))?;
+        match library_puck.status {
+            PuckStatus::Ready => Ok(()),
+            status => Err(format!("Mount cannot be started whilst Cane is {status}")),
+        }?;
+
         let puck = puck_mount::ActiveModel {
             id: ActiveValue::Set(Uuid::new_v4()),
             cane_mount_id: ActiveValue::Set(None),
@@ -50,8 +66,22 @@ impl PuckMutation {
             timestamp: ActiveValue::Set(Utc::now()),
             operator_id: ActiveValue::Set(operator_id),
         };
-        Ok(puck_mount::Entity::insert(puck)
-            .exec_with_returning(database)
-            .await?)
+        let mut library_puck = library_puck.into_active_model();
+        library_puck.status = ActiveValue::Set(PuckStatus::Filling);
+
+        let puck = database
+            .transaction(|transaction| {
+                Box::pin(async {
+                    puck_library::Entity::update(library_puck)
+                        .exec(transaction)
+                        .await?;
+                    puck_mount::Entity::insert(puck)
+                        .exec_with_returning(transaction)
+                        .await
+                })
+            })
+            .await?;
+
+        Ok(puck)
     }
 }

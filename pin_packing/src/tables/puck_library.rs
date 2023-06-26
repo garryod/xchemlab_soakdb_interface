@@ -11,8 +11,10 @@ use sea_orm::{
 pub enum PuckStatus {
     #[sea_orm(string_value = "Ready")]
     Ready,
-    #[sea_orm(string_value = "Occupied")]
-    Occupied,
+    #[sea_orm(string_value = "Filling")]
+    Filling,
+    #[sea_orm(string_value = "Away")]
+    Away,
     #[sea_orm(string_value = "Broken")]
     Broken,
 }
