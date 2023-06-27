@@ -12,7 +12,7 @@ use graphql::{root_schema_builder, RootSchema};
 use graphql_endpoints::{GraphQLHandler, GraphQLSubscription, GraphiQLHandler};
 use migrations::create_tables;
 use opa_client::OPAClient;
-use sea_orm::{ConnectOptions, Database, DatabaseConnection, DbErr};
+use sea_orm::{ConnectOptions, Database, DatabaseConnection, DbErr, TransactionError};
 use std::{
     fs::File,
     io::Write,
@@ -37,7 +37,7 @@ fn setup_router(schema: RootSchema) -> Router {
         .route_service(SUBSCRIPTION_ENDPOINT, GraphQLSubscription::new(schema))
 }
 
-async fn setup_database(database_url: Url) -> Result<DatabaseConnection, DbErr> {
+async fn setup_database(database_url: Url) -> Result<DatabaseConnection, TransactionError<DbErr>> {
     let connection_options = ConnectOptions::new(database_url.to_string());
     let connection = Database::connect(connection_options).await?;
     create_tables(&connection).await?;
