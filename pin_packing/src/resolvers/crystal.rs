@@ -6,7 +6,6 @@ use async_graphql::{ComplexObject, Context, Object};
 use chrono::Utc;
 use opa_client::subject_authorization;
 use sea_orm::{ActiveValue, DatabaseConnection, EntityTrait, ModelTrait};
-use uuid::Uuid;
 
 #[ComplexObject]
 impl crystal::Model {
@@ -27,7 +26,7 @@ impl CrystalQuery {
     async fn crystal(
         &self,
         ctx: &Context<'_>,
-        id: Uuid,
+        id: i32,
     ) -> async_graphql::Result<Option<crystal::Model>> {
         subject_authorization!("xchemlab.pin_packing.read_crystal", ctx).await?;
         let database = ctx.data::<DatabaseConnection>()?;
@@ -43,7 +42,7 @@ impl CrystalMutation {
     async fn create_crystal(
         &self,
         ctx: &Context<'_>,
-        plate_id: Uuid,
+        plate_id: i32,
         plate_well: i16,
         crystal_state: CrystalState,
         compound_state: CompoundState,
@@ -51,7 +50,7 @@ impl CrystalMutation {
         let operator_id = subject_authorization!("xchemlab.pin_packing.write_crystal", ctx).await?;
         let database = ctx.data::<DatabaseConnection>()?;
         let crystal = crystal::ActiveModel {
-            id: ActiveValue::Set(Uuid::new_v4()),
+            id: ActiveValue::NotSet,
             crystal_plate_id: ActiveValue::Set(plate_id),
             crystal_plate_well: ActiveValue::Set(plate_well),
             crystal_state: ActiveValue::Set(crystal_state),

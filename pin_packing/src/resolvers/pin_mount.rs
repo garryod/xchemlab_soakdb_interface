@@ -9,7 +9,6 @@ use opa_client::subject_authorization;
 use sea_orm::{
     ActiveValue, DatabaseConnection, EntityTrait, IntoActiveModel, ModelTrait, TransactionTrait,
 };
-use uuid::Uuid;
 
 #[ComplexObject]
 impl pin_mount::Model {
@@ -42,7 +41,7 @@ impl PinMountQuery {
     async fn get_pin_mount(
         &self,
         ctx: &Context<'_>,
-        id: Uuid,
+        id: i32,
     ) -> async_graphql::Result<Option<pin_mount::Model>> {
         subject_authorization!("xchemlab.pin_packing.read_pin_mount", ctx).await?;
         let database = ctx.data::<DatabaseConnection>()?;
@@ -58,8 +57,8 @@ impl PinMountMutation {
     async fn create_pin_mount(
         &self,
         ctx: &Context<'_>,
-        crystal_id: Uuid,
-        puck_mount_id: Uuid,
+        crystal_id: i32,
+        puck_mount_id: i32,
         puck_location: i16,
         barcode: String,
     ) -> async_graphql::Result<pin_mount::Model> {
@@ -77,7 +76,7 @@ impl PinMountMutation {
         }?;
 
         let pin_mount = pin_mount::ActiveModel {
-            id: ActiveValue::Set(Uuid::new_v4()),
+            id: ActiveValue::NotSet,
             crystal_id: ActiveValue::Set(crystal_id),
             puck_mount_id: ActiveValue::Set(puck_mount_id),
             puck_location: ActiveValue::Set(puck_location),

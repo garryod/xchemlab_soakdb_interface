@@ -6,7 +6,6 @@ use sea_orm::{
     ActiveModelBehavior, DeriveActiveEnum, DeriveEntityModel, DerivePrimaryKey, DeriveRelation,
     EntityTrait, EnumIter, PrimaryKeyTrait, Related, RelationTrait,
 };
-use uuid::Uuid;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, EnumIter, DeriveActiveEnum, Enum)]
 #[sea_orm(rs_type = "String", db_type = "Enum", enum_name = "crystal_state")]
@@ -42,9 +41,9 @@ pub enum CompoundState {
 #[sea_orm(table_name = "crystal")]
 #[graphql(name = "Crystal", complex)]
 pub struct Model {
-    #[sea_orm(primary_key, auto_increment = false)]
-    pub id: Uuid,
-    pub crystal_plate_id: Uuid,
+    #[sea_orm(primary_key)]
+    pub id: i32,
+    pub crystal_plate_id: i32,
     pub crystal_plate_well: i16,
     pub crystal_state: CrystalState,
     pub compound_state: CompoundState,
