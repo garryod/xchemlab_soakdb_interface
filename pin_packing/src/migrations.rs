@@ -1,4 +1,7 @@
-use crate::tables::{self, cane_library, crystal, pin_library, puck_library};
+use crate::tables::{
+    self, cane_library, crystal, pin_library, pin_mount::unique_puck_mount_location, puck_library,
+    puck_mount::unique_cane_mount_location,
+};
 use sea_orm::{
     ConnectionTrait, DatabaseConnection, DbErr, Schema, TransactionError, TransactionTrait,
 };
@@ -84,6 +87,9 @@ pub async fn create_tables(connection: &DatabaseConnection) -> Result<(), Transa
                         ),
                     )
                     .await?;
+                trasaction
+                    .execute(builder.build(&unique_cane_mount_location()))
+                    .await?;
 
                 trasaction
                     .execute(
@@ -109,6 +115,9 @@ pub async fn create_tables(connection: &DatabaseConnection) -> Result<(), Transa
                                 .if_not_exists(),
                         ),
                     )
+                    .await?;
+                trasaction
+                    .execute(builder.build(&unique_puck_mount_location()))
                     .await?;
 
                 Ok(())

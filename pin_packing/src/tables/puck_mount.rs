@@ -6,8 +6,9 @@ use async_graphql::SimpleObject;
 use axum::async_trait;
 use chrono::{DateTime, Utc};
 use sea_orm::{
-    ActiveModelBehavior, ConnectionTrait, DbErr, DeriveEntityModel, DerivePrimaryKey,
-    DeriveRelation, EntityTrait, EnumIter, PrimaryKeyTrait, Related, RelationTrait,
+    sea_query::Index, ActiveModelBehavior, ConnectionTrait, DbErr, DeriveEntityModel,
+    DerivePrimaryKey, DeriveRelation, EntityTrait, EnumIter, PrimaryKeyTrait, Related,
+    RelationTrait, StatementBuilder,
 };
 
 pub const PUCK_SLOTS: i16 = 16;
@@ -23,6 +24,15 @@ pub struct Model {
     pub barcode: String,
     pub timestamp: DateTime<Utc>,
     pub operator_id: String,
+}
+
+pub fn unique_cane_mount_location() -> impl StatementBuilder {
+    Index::create()
+        .table(Entity)
+        .col(Column::CaneMountId)
+        .col(Column::CaneLocation)
+        .unique()
+        .to_owned()
 }
 
 #[derive(Debug, Clone, Copy, EnumIter, DeriveRelation)]
