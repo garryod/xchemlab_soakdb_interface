@@ -10,6 +10,7 @@ use sea_orm::{
     ActiveModelBehavior, ConnectionTrait, DbErr, DeriveEntityModel, DerivePrimaryKey,
     DeriveRelation, EntityTrait, EnumIter, PrimaryKeyTrait, Related, RelationTrait,
 };
+use uuid::Uuid;
 
 pub const PUCK_SLOTS: i16 = 16;
 
@@ -17,9 +18,9 @@ pub const PUCK_SLOTS: i16 = 16;
 #[sea_orm(table_name = "puck_mount")]
 #[graphql(name = "MountedPuck", complex)]
 pub struct Model {
-    #[sea_orm(primary_key)]
-    pub id: i32,
-    pub cane_mount_id: Option<i32>,
+    #[sea_orm(primary_key, auto_increment = false)]
+    pub id: Uuid,
+    pub cane_mount_id: Option<Uuid>,
     pub cane_location: Option<i16>,
     pub barcode: String,
     pub timestamp: DateTime<Utc>,

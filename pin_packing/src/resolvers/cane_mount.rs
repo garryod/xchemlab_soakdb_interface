@@ -8,6 +8,7 @@ use opa_client::subject_authorization;
 use sea_orm::{
     ActiveValue, DatabaseConnection, EntityTrait, IntoActiveModel, ModelTrait, TransactionTrait,
 };
+use uuid::Uuid;
 
 #[ComplexObject]
 impl cane_mount::Model {
@@ -26,7 +27,7 @@ impl CaneMountQuery {
     async fn get_cane_mount(
         &self,
         ctx: &Context<'_>,
-        id: i32,
+        id: Uuid,
     ) -> async_graphql::Result<Option<cane_mount::Model>> {
         subject_authorization!("xchemlab.pin_packing.read_cane_mount", ctx).await?;
         let database = ctx.data::<DatabaseConnection>()?;
@@ -67,7 +68,7 @@ impl CaneMountMutation {
         }?;
 
         let cane = cane_mount::ActiveModel {
-            id: ActiveValue::NotSet,
+            id: ActiveValue::Set(Uuid::new_v4()),
             barcode: ActiveValue::Set(barcode),
             operator_id: ActiveValue::Set(operator_id),
             timestamp: ActiveValue::Set(Utc::now()),

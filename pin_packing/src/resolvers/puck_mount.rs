@@ -9,6 +9,7 @@ use opa_client::subject_authorization;
 use sea_orm::{
     ActiveValue, DatabaseConnection, EntityTrait, IntoActiveModel, ModelTrait, TransactionTrait,
 };
+use uuid::Uuid;
 
 #[ComplexObject]
 impl puck_mount::Model {
@@ -33,7 +34,7 @@ impl PuckMountQuery {
     async fn get_puck_mount(
         &self,
         ctx: &Context<'_>,
-        id: i32,
+        id: Uuid,
     ) -> async_graphql::Result<Option<puck_mount::Model>> {
         subject_authorization!("xchemlab.pin_packing.read_puck_mount", ctx).await?;
         let database = ctx.data::<DatabaseConnection>()?;
@@ -65,7 +66,7 @@ impl PuckMountMutation {
         }?;
 
         let puck = puck_mount::ActiveModel {
-            id: ActiveValue::NotSet,
+            id: ActiveValue::Set(Uuid::new_v4()),
             cane_mount_id: ActiveValue::Set(None),
             cane_location: ActiveValue::Set(None),
             barcode: ActiveValue::Set(barcode),

@@ -10,15 +10,16 @@ use sea_orm::{
     ActiveModelBehavior, ConnectionTrait, DbErr, DeriveEntityModel, DerivePrimaryKey,
     DeriveRelation, EntityTrait, EnumIter, PrimaryKeyTrait, Related, RelationTrait,
 };
+use uuid::Uuid;
 
 #[derive(Debug, Clone, PartialEq, Eq, DeriveEntityModel, SimpleObject)]
 #[sea_orm(table_name = "pin_mount")]
 #[graphql(name = "MountedPin", complex)]
 pub struct Model {
-    #[sea_orm(primary_key)]
-    pub id: i32,
-    pub crystal_id: i32,
-    pub puck_mount_id: i32,
+    #[sea_orm(primary_key, auto_increment = false)]
+    pub id: Uuid,
+    pub crystal_id: Uuid,
+    pub puck_mount_id: Uuid,
     pub puck_location: i16,
     pub barcode: String,
     pub timestamp: DateTime<Utc>,
