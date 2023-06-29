@@ -6,9 +6,9 @@ use async_graphql::SimpleObject;
 use axum::async_trait;
 use chrono::{DateTime, Utc};
 use sea_orm::{
-    sea_query::Index, ActiveModelBehavior, ConnectionTrait, DbErr, DeriveEntityModel,
-    DerivePrimaryKey, DeriveRelation, EntityTrait, EnumIter, PrimaryKeyTrait, Related,
-    RelationTrait, StatementBuilder,
+    sea_query::{Index, IndexCreateStatement},
+    ActiveModelBehavior, ConnectionTrait, DbErr, DeriveEntityModel, DerivePrimaryKey,
+    DeriveRelation, EntityTrait, EnumIter, PrimaryKeyTrait, Related, RelationTrait,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, DeriveEntityModel, SimpleObject)]
@@ -25,7 +25,7 @@ pub struct Model {
     pub operator_id: String,
 }
 
-pub fn unique_puck_mount_location() -> impl StatementBuilder {
+pub fn unique_puck_mount_location() -> IndexCreateStatement {
     Index::create()
         .name("unique-puck-mount-location")
         .table(Entity)

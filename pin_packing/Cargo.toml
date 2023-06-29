@@ -12,6 +12,7 @@ dotenvy = { workspace = true }
 graphql_endpoints = { path = "../graphql_endpoints" }
 opa_client = { path = "../opa_client", features = ["graphql"] }
 sea-orm = { workspace = true, features = ["sqlx-postgres"] }
+sea-orm-migration = { workspace = true }
 tokio = { workspace = true }
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true }

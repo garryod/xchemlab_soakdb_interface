@@ -10,9 +10,10 @@ use axum::{routing::get, Router, Server};
 use clap::Parser;
 use graphql::{root_schema_builder, RootSchema};
 use graphql_endpoints::{GraphQLHandler, GraphQLSubscription, GraphiQLHandler};
-use migrations::create_tables;
+use migrations::Migrator;
 use opa_client::OPAClient;
 use sea_orm::{ConnectOptions, Database, DatabaseConnection, DbErr, TransactionError};
+use sea_orm_migration::MigratorTrait;
 use std::{
     fs::File,
     io::Write,
@@ -40,7 +41,7 @@ fn setup_router(schema: RootSchema) -> Router {
 async fn setup_database(database_url: Url) -> Result<DatabaseConnection, TransactionError<DbErr>> {
     let connection_options = ConnectOptions::new(database_url.to_string());
     let connection = Database::connect(connection_options).await?;
-    create_tables(&connection).await?;
+    Migrator::up(&connection, None).await?;
     Ok(connection)
 }
 

@@ -1,127 +1,73 @@
 use crate::tables::{
-    self, cane_library, crystal, pin_library, pin_mount::unique_puck_mount_location, puck_library,
-    puck_mount::unique_cane_mount_location,
+    cane_library, cane_mount, crystal, pin_library,
+    pin_mount::{self, unique_puck_mount_location},
+    puck_library,
+    puck_mount::{self, unique_cane_mount_location},
 };
-use sea_orm::{
-    ConnectionTrait, DatabaseConnection, DbErr, Schema, TransactionError, TransactionTrait,
-};
+use axum::async_trait;
+use sea_orm::{DbErr, DeriveMigrationName, Schema};
+use sea_orm_migration::{MigrationTrait, MigratorTrait, SchemaManager};
 
-pub async fn create_tables(connection: &DatabaseConnection) -> Result<(), TransactionError<DbErr>> {
-    let builder = connection.get_database_backend();
-    let schema = Schema::new(builder);
+pub struct Migrator;
 
-    connection
-        .transaction(|trasaction| {
-            Box::pin(async move {
-                trasaction
-                    .execute(
-                        builder
-                            .build(&schema.create_enum_from_active_enum::<crystal::CrystalState>()),
-                    )
-                    .await?;
-                trasaction
-                    .execute(
-                        builder.build(
-                            &schema.create_enum_from_active_enum::<crystal::CompoundState>(),
-                        ),
-                    )
-                    .await?;
-                trasaction
-                    .execute(
-                        builder.build(
-                            schema
-                                .create_table_from_entity(crystal::Entity)
-                                .if_not_exists(),
-                        ),
-                    )
-                    .await?;
+#[async_trait]
+impl MigratorTrait for Migrator {
+    fn migrations() -> Vec<Box<dyn MigrationTrait>> {
+        vec![Box::new(Initial)]
+    }
+}
 
-                trasaction
-                    .execute(
-                        builder.build(
-                            &schema.create_enum_from_active_enum::<cane_library::CaneStatus>(),
-                        ),
-                    )
-                    .await?;
-                trasaction
-                    .execute(
-                        builder.build(
-                            schema
-                                .create_table_from_entity(tables::cane_library::Entity)
-                                .if_not_exists(),
-                        ),
-                    )
-                    .await?;
-                trasaction
-                    .execute(
-                        builder.build(
-                            schema
-                                .create_table_from_entity(tables::cane_mount::Entity)
-                                .if_not_exists(),
-                        ),
-                    )
-                    .await?;
+#[derive(DeriveMigrationName)]
+struct Initial;
 
-                trasaction
-                    .execute(
-                        builder.build(
-                            &schema.create_enum_from_active_enum::<puck_library::PuckStatus>(),
-                        ),
-                    )
-                    .await?;
-                trasaction
-                    .execute(
-                        builder.build(
-                            schema
-                                .create_table_from_entity(tables::puck_library::Entity)
-                                .if_not_exists(),
-                        ),
-                    )
-                    .await?;
-                trasaction
-                    .execute(
-                        builder.build(
-                            schema
-                                .create_table_from_entity(tables::puck_mount::Entity)
-                                .if_not_exists(),
-                        ),
-                    )
-                    .await?;
-                trasaction
-                    .execute(builder.build(&unique_cane_mount_location()))
-                    .await?;
+#[async_trait]
+impl MigrationTrait for Initial {
+    async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
+        let backend = manager.get_database_backend();
+        let schema = Schema::new(backend);
 
-                trasaction
-                    .execute(
-                        builder.build(
-                            &schema.create_enum_from_active_enum::<pin_library::PinStatus>(),
-                        ),
-                    )
-                    .await?;
-                trasaction
-                    .execute(
-                        builder.build(
-                            schema
-                                .create_table_from_entity(tables::pin_library::Entity)
-                                .if_not_exists(),
-                        ),
-                    )
-                    .await?;
-                trasaction
-                    .execute(
-                        builder.build(
-                            schema
-                                .create_table_from_entity(tables::pin_mount::Entity)
-                                .if_not_exists(),
-                        ),
-                    )
-                    .await?;
-                trasaction
-                    .execute(builder.build(&unique_puck_mount_location()))
-                    .await?;
+        manager
+            .create_type(schema.create_enum_from_active_enum::<crystal::CrystalState>())
+            .await?;
+        manager
+            .create_type(schema.create_enum_from_active_enum::<crystal::CompoundState>())
+            .await?;
+        manager
+            .create_table(schema.create_table_from_entity(crystal::Entity))
+            .await?;
 
-                Ok(())
-            })
-        })
-        .await
+        manager
+            .create_type(schema.create_enum_from_active_enum::<cane_library::CaneStatus>())
+            .await?;
+        manager
+            .create_table(schema.create_table_from_entity(cane_library::Entity))
+            .await?;
+        manager
+            .create_table(schema.create_table_from_entity(cane_mount::Entity))
+            .await?;
+
+        manager
+            .create_type(schema.create_enum_from_active_enum::<puck_library::PuckStatus>())
+            .await?;
+        manager
+            .create_table(schema.create_table_from_entity(puck_library::Entity))
+            .await?;
+        manager
+            .create_table(schema.create_table_from_entity(puck_mount::Entity))
+            .await?;
+        manager.create_index(unique_cane_mount_location()).await?;
+
+        manager
+            .create_type(schema.create_enum_from_active_enum::<pin_library::PinStatus>())
+            .await?;
+        manager
+            .create_table(schema.create_table_from_entity(pin_library::Entity))
+            .await?;
+        manager
+            .create_table(schema.create_table_from_entity(pin_mount::Entity))
+            .await?;
+        manager.create_index(unique_puck_mount_location()).await?;
+
+        Ok(())
+    }
 }
