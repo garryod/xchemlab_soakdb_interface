@@ -2363,6 +2363,7 @@ name = "soakdb_sync"
 version = "0.1.0"
 dependencies = [
  "async-graphql",
+ "async-trait",
  "axum",
  "chrono",
  "clap 4.3.9",
@@ -2371,11 +2372,14 @@ dependencies = [
  "graphql_endpoints",
  "itertools",
  "opa_client",
+ "sea-orm",
+ "sea-orm-migration",
  "soakdb_io",
  "tokio",
  "tracing",
  "tracing-subscriber",
  "url",
+ "uuid",
 ]
 
 [[package]]

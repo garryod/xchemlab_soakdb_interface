@@ -1,8 +1,10 @@
 #![doc = include_str!("../../README.md")]
 #![forbid(unsafe_code)]
 mod graphql;
+mod migrations;
 mod models;
 mod resolvers;
+mod tables;
 
 use async_graphql::extensions::Tracing;
 use axum::{routing::get, Router, Server};

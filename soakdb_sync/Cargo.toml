@@ -19,8 +19,12 @@ dotenvy = { workspace = true }
 graphql_endpoints = { path = "../graphql_endpoints" }
 itertools = { workspace = true }
 opa_client = { path = "../opa_client", features = ["graphql"] }
+sea-orm = { workspace = true }
+sea-orm-migration = { workspace = true }
 soakdb_io = { path = "../soakdb_io" }
 tokio = { workspace = true }
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true }
 url = { workspace = true }
+uuid = { workspace = true }
+async-trait = "0.1.68"
