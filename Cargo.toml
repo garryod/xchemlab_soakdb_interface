@@ -17,7 +17,7 @@ async-graphql = { version = "5.0.10", default-features = false, features = [
 ] }
 axum = { version = "0.6.15", features = ["headers", "macros", "ws"] }
 chrono = { version = "0.4.26", default-features = false }
-clap = { version = "4.3.8", features = ["derive", "env"] }
+clap = { version = "4.3.10", features = ["derive", "env"] }
 derive_more = { version = "0.99.17" }
 dotenvy = { version = "0.15.7" }
 itertools = { version = "0.10.5" }
