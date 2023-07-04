@@ -1,3 +1,4 @@
+mod image_loading;
 mod model;
 
 use crate::model::setup_inference_session;

@@ -6,6 +6,12 @@ edition = "2021"
 [dependencies]
 clap = { workspace = true }
 dotenvy = { workspace = true }
+image = { version = "0.24.6" }
+ndarray = { version = "0.15.6" }
+nshare = { version = "0.9.0", default-features = false, features = [
+    "image",
+    "ndarray",
+] }
 ort = { version = "1.14.8", default-features = false, features = [
     "download-binaries",
     "tensorrt",
