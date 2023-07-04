@@ -4,3 +4,10 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+clap = { workspace = true }
+dotenvy = { workspace = true }
+ort = { version = "1.14.8", default-features = false, features = [
+    "download-binaries",
+    "tensorrt",
+    "copy-dylibs",
+] }
