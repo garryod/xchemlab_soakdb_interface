@@ -1,6 +1,7 @@
 [workspace]
 members = [
     "chimp_chomp",
+    "chimp_protocol",
     "graphql_endpoints",
     "graphql_event_broker",
     "opa_client",

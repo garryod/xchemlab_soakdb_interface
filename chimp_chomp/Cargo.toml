@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+chimp_protocol = { path = "../chimp_protocol" }
 clap = { workspace = true }
 dotenvy = { workspace = true }
 image = { version = "0.24.6" }
