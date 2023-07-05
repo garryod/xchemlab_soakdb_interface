@@ -612,7 +612,7 @@ name = "chimp_chomp"
 version = "0.1.0"
 dependencies = [
  "chimp_protocol",
- "clap 4.3.9",
+ "clap 4.3.10",
  "dotenvy",
  "futures-lite",
  "image",
