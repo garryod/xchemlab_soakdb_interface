@@ -1,12 +1,14 @@
 use chimp_protocol::{Prediction, Predictions};
 use itertools::{izip, Itertools};
-use ndarray::{ArrayBase, Axis, Dim, Ix2, Ix3, IxDynImpl, OwnedRepr, ViewRepr};
+use ndarray::{ArrayBase, Axis, Dim, Ix2, Ix3, IxDynImpl, ViewRepr};
 use ort::{
     tensor::{FromArray, InputTensor},
     Environment, ExecutionProvider, GraphOptimizationLevel, OrtError, Session, SessionBuilder,
 };
 use std::{path::Path, sync::Arc};
 use tokio::sync::mpsc::{Receiver, UnboundedSender};
+
+use crate::image_loading::Image;
 
 pub fn setup_inference_session(model_path: impl AsRef<Path>) -> Result<Session, OrtError> {
     let environment = Arc::new(
@@ -74,21 +76,25 @@ fn do_inference(
 pub async fn inference_worker(
     session: Session,
     batch_size: usize,
-    mut image_rx: Receiver<ArrayBase<OwnedRepr<f32>, Dim<IxDynImpl>>>,
-    prediction_tx: UnboundedSender<Predictions>,
+    mut image_rx: Receiver<(Image, String)>,
+    prediction_tx: UnboundedSender<(Predictions, String)>,
 ) {
     image_rx
         .recv()
         .await
         .iter()
-        .map(ArrayBase::view)
+        .map(|(image, predictions_channel)| (image.view(), predictions_channel))
         .chunks(batch_size)
         .into_iter()
-        .for_each(|images| {
-            let images = images.collect::<Vec<_>>();
+        .for_each(|jobs| {
+            let (images, prediction_channels) = jobs.into_iter().unzip::<_, _, Vec<_>, Vec<_>>();
             let predictions = do_inference(&session, &images);
-            predictions
-                .into_iter()
-                .for_each(|predictions| prediction_tx.send(predictions).unwrap())
+            izip!(predictions.into_iter(), prediction_channels.into_iter()).for_each(
+                |(predictions, prediction_channel)| {
+                    prediction_tx
+                        .send((predictions, prediction_channel.clone()))
+                        .unwrap()
+                },
+            )
         });
 }

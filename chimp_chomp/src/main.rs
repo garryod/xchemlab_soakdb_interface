@@ -4,7 +4,9 @@ mod jobs;
 
 use clap::Parser;
 use inference::{inference_worker, setup_inference_session};
-use jobs::{job_consumption_worker, setup_job_consumer, setup_rabbitmq_client};
+use jobs::{
+    job_consumption_worker, predictions_producer_worker, setup_job_consumer, setup_rabbitmq_client,
+};
 use std::path::PathBuf;
 use tokio::task::JoinSet;
 use url::Url;
@@ -31,12 +33,14 @@ async fn main() {
     let batch_size = session.inputs[0].dimensions[0].unwrap().try_into().unwrap();
 
     let rabbitmq_client = setup_rabbitmq_client(args.rabbitmq_address).await.unwrap();
-    let job_consumer = setup_job_consumer(rabbitmq_client, args.rabbitmq_channel)
+    let job_channel = rabbitmq_client.create_channel().await.unwrap();
+    let predictions_channel = rabbitmq_client.create_channel().await.unwrap();
+    let job_consumer = setup_job_consumer(job_channel, args.rabbitmq_channel)
         .await
         .unwrap();
 
     let (image_tx, image_rx) = tokio::sync::mpsc::channel(batch_size);
-    let (prediction_tx, _prediction_rx) = tokio::sync::mpsc::unbounded_channel();
+    let (prediction_tx, prediction_rx) = tokio::sync::mpsc::unbounded_channel();
 
     let mut tasks = JoinSet::new();
 
@@ -52,6 +56,11 @@ async fn main() {
         input_width,
         input_height,
         image_tx,
+    ));
+
+    tasks.spawn(predictions_producer_worker(
+        prediction_rx,
+        predictions_channel,
     ));
 
     tasks.join_next().await;

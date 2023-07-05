@@ -3,11 +3,9 @@ use ndarray::{ArrayBase, Axis, Dim, IxDynImpl, OwnedRepr};
 use nshare::ToNdarray3;
 use std::{fs::File, io::BufReader, path::Path};
 
-pub fn load_image(
-    path: impl AsRef<Path>,
-    width: u32,
-    height: u32,
-) -> ArrayBase<OwnedRepr<f32>, Dim<IxDynImpl>> {
+pub type Image = ArrayBase<OwnedRepr<f32>, Dim<IxDynImpl>>;
+
+pub fn load_image(path: impl AsRef<Path>, width: u32, height: u32) -> Image {
     let file = File::open(path).unwrap();
     let reader = BufReader::new(file);
     image::load(reader, ImageFormat::Jpeg)
