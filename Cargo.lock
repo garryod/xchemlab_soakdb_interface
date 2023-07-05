@@ -448,9 +448,11 @@ dependencies = [
  "clap 4.3.9",
  "dotenvy",
  "image",
+ "itertools",
  "ndarray",
  "nshare",
  "ort",
+ "tokio",
 ]
 
 [[package]]
