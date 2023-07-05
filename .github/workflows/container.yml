@@ -14,6 +14,7 @@ jobs:
           - chimp_chomp
           - soakdb_sync
           - pin_packing
+      max-parallel: 1
     runs-on: ubuntu-latest
     steps:
       - name: Generate Image Name
