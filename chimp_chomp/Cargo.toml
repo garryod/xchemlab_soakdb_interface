@@ -7,8 +7,12 @@ edition = "2021"
 chimp_protocol = { path = "../chimp_protocol" }
 clap = { workspace = true }
 dotenvy = { workspace = true }
+futures-lite = { version = "1.13.0" }
 image = { version = "0.24.6" }
 itertools = { workspace = true }
+lapin = { version = "2.2.1", default-features = false, features = [
+    "native-tls",
+] }
 ndarray = { version = "0.15.6" }
 nshare = { version = "0.9.0", default-features = false, features = [
     "image",
@@ -20,3 +24,5 @@ ort = { version = "1.14.8", default-features = false, features = [
     "copy-dylibs",
 ] }
 tokio = { workspace = true, features = ["sync"] }
+url = { workspace = true }
+uuid = { workspace = true }

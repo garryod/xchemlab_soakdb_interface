@@ -4,14 +4,20 @@ mod jobs;
 
 use clap::Parser;
 use inference::{inference_worker, setup_inference_session};
+use jobs::{job_consumption_worker, setup_job_consumer, setup_rabbitmq_client};
 use std::path::PathBuf;
 use tokio::task::JoinSet;
+use url::Url;
 
 #[derive(Debug, Parser)]
 #[command(author, version, about, long_about=None)]
 struct Cli {
     /// The path to the ONNX model file.
     model: PathBuf,
+    /// The URL of the RabbitMQ server.
+    rabbitmq_address: Url,
+    /// The RabbitMQ channel on which jobs are assigned.
+    rabbitmq_channel: String,
 }
 
 #[tokio::main]
@@ -20,9 +26,16 @@ async fn main() {
     let args = Cli::parse();
 
     let session = setup_inference_session(args.model).unwrap();
+    let input_width = session.inputs[0].dimensions[3].unwrap();
+    let input_height = session.inputs[0].dimensions[2].unwrap();
     let batch_size = session.inputs[0].dimensions[0].unwrap().try_into().unwrap();
 
-    let (_image_tx, image_rx) = tokio::sync::mpsc::channel(batch_size);
+    let rabbitmq_client = setup_rabbitmq_client(args.rabbitmq_address).await.unwrap();
+    let job_consumer = setup_job_consumer(rabbitmq_client, args.rabbitmq_channel)
+        .await
+        .unwrap();
+
+    let (image_tx, image_rx) = tokio::sync::mpsc::channel(batch_size);
     let (prediction_tx, _prediction_rx) = tokio::sync::mpsc::unbounded_channel();
 
     let mut tasks = JoinSet::new();
@@ -32,6 +45,13 @@ async fn main() {
         batch_size,
         image_rx,
         prediction_tx,
+    ));
+
+    tasks.spawn(job_consumption_worker(
+        job_consumer,
+        input_width,
+        input_height,
+        image_tx,
     ));
 
     tasks.join_next().await;
