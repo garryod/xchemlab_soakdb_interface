@@ -11,6 +11,7 @@ services:
     environment:
       OPA_URL: http://opa:8181
       POSTGRES_URL: postgres://postgres:password@postgres
+      RABBITMQ_URL: amqp://rabbitmq:password@rabbitmq
 
   opa:
     image: docker.io/openpolicyagent/opa:0.53.1
@@ -28,3 +29,9 @@ services:
     image: docker.io/library/postgres:15.3-bookworm
     environment:
       POSTGRES_PASSWORD: password
+
+  rabbitmq:
+    image: docker.io/library/rabbitmq:3.12.1
+    environment:
+      RABBITMQ_DEFAULT_USER: rabbitmq
+      RABBITMQ_DEFAULT_PASS: password
