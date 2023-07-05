@@ -11,6 +11,7 @@ jobs:
     strategy:
       matrix:
         service:
+          - chimp_chomp
           - soakdb_sync
           - pin_packing
     runs-on: ubuntu-latest
