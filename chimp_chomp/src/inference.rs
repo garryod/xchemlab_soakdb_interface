@@ -1,6 +1,6 @@
 use chimp_protocol::{Prediction, Predictions};
 use itertools::{izip, Itertools};
-use ndarray::{ArrayBase, Axis, Dim, Ix2, Ix3, IxDynImpl, ViewRepr};
+use ndarray::{ArrayBase, Axis, Dim, Ix1, Ix2, IxDynImpl, ViewRepr};
 use ort::{
     tensor::{FromArray, InputTensor},
     Environment, ExecutionProvider, GraphOptimizationLevel, OrtError, Session, SessionBuilder,
@@ -25,52 +25,56 @@ pub fn setup_inference_session(model_path: impl AsRef<Path>) -> Result<Session, 
 fn do_inference(
     session: &Session,
     images: &[ArrayBase<ViewRepr<&f32>, Dim<IxDynImpl>>],
+    batch_size: usize,
 ) -> Vec<Predictions> {
-    let input = InputTensor::from_array(ndarray::concatenate(Axis(0), images).unwrap());
+    let images = images
+        .iter()
+        .cloned()
+        .chain(std::iter::repeat(images[0].clone()).take(batch_size - images.len()))
+        .collect::<Vec<_>>();
+    let input = InputTensor::from_array(ndarray::concatenate(Axis(0), &images).unwrap());
     let outputs = session.run(vec![input]).unwrap();
-    let bboxes = outputs[0]
-        .try_extract::<f32>()
-        .unwrap()
-        .view()
-        .to_owned()
-        .into_dimensionality::<Ix3>()
-        .unwrap();
-    let labels = outputs[1]
-        .try_extract::<i64>()
-        .unwrap()
-        .view()
-        .to_owned()
-        .into_dimensionality::<Ix2>()
-        .unwrap();
-    let scores = outputs[2]
-        .try_extract::<f32>()
-        .unwrap()
-        .view()
-        .to_owned()
-        .into_dimensionality::<Ix2>()
-        .unwrap();
+    outputs
+        .into_iter()
+        .tuples()
+        .map(|(bboxes, labels, scores, _)| {
+            let bboxes = bboxes
+                .try_extract::<f32>()
+                .unwrap()
+                .view()
+                .to_owned()
+                .into_dimensionality::<Ix2>()
+                .unwrap();
+            let labels = labels
+                .try_extract::<i64>()
+                .unwrap()
+                .view()
+                .to_owned()
+                .into_dimensionality::<Ix1>()
+                .unwrap();
+            let scores = scores
+                .try_extract::<f32>()
+                .unwrap()
+                .view()
+                .to_owned()
+                .into_dimensionality::<Ix1>()
+                .unwrap();
 
-    izip!(
-        bboxes.outer_iter(),
-        labels.outer_iter(),
-        scores.outer_iter()
-    )
-    .map(|(bboxes, labels, scores)| {
-        Predictions(
-            izip!(
-                bboxes.outer_iter(),
-                labels.to_vec().iter(),
-                scores.to_vec().iter()
+            Predictions(
+                izip!(
+                    bboxes.outer_iter(),
+                    labels.to_vec().iter(),
+                    scores.to_vec().iter()
+                )
+                .map(|(bbox, &label, &score)| Prediction {
+                    bbox: bbox.to_vec().try_into().unwrap(),
+                    label,
+                    score,
+                })
+                .collect(),
             )
-            .map(|(bbox, &label, &score)| Prediction {
-                bbox: bbox.to_vec().try_into().unwrap(),
-                label,
-                score,
-            })
-            .collect(),
-        )
-    })
-    .collect()
+        })
+        .collect()
 }
 
 pub async fn inference_worker(
@@ -88,7 +92,7 @@ pub async fn inference_worker(
         .into_iter()
         .for_each(|jobs| {
             let (images, prediction_channels) = jobs.into_iter().unzip::<_, _, Vec<_>, Vec<_>>();
-            let predictions = do_inference(&session, &images);
+            let predictions = do_inference(&session, &images, batch_size);
             izip!(predictions.into_iter(), prediction_channels.into_iter()).for_each(
                 |(predictions, prediction_channel)| {
                     prediction_tx
