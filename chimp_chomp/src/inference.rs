@@ -1,14 +1,19 @@
-use chimp_protocol::{Prediction, Predictions};
+use chimp_protocol::Job;
 use itertools::{izip, Itertools};
-use ndarray::{ArrayBase, Axis, Dim, Ix1, Ix2, IxDynImpl, ViewRepr};
+use ndarray::{Array1, Array2, Array3, Axis, Ix1, Ix2, Ix4};
 use ort::{
     tensor::{FromArray, InputTensor},
     Environment, ExecutionProvider, GraphOptimizationLevel, OrtError, Session, SessionBuilder,
 };
-use std::{path::Path, sync::Arc};
-use tokio::sync::mpsc::{Receiver, UnboundedSender};
+use std::{ops::Deref, path::Path, sync::Arc};
+use tokio::sync::mpsc::{error::TryRecvError, Receiver, UnboundedSender};
 
-use crate::image_loading::Image;
+use crate::image_loading::ChimpImage;
+
+pub type BBoxes = Array2<f32>;
+pub type Labels = Array1<i64>;
+pub type Scores = Array1<f32>;
+pub type Masks = Array3<f32>;
 
 pub fn setup_inference_session(model_path: impl AsRef<Path>) -> Result<Session, OrtError> {
     let environment = Arc::new(
@@ -24,20 +29,22 @@ pub fn setup_inference_session(model_path: impl AsRef<Path>) -> Result<Session, 
 
 fn do_inference(
     session: &Session,
-    images: &[ArrayBase<ViewRepr<&f32>, Dim<IxDynImpl>>],
+    images: &[ChimpImage],
     batch_size: usize,
-) -> Vec<Predictions> {
-    let images = images
+) -> Vec<(BBoxes, Labels, Scores, Masks)> {
+    let batch_images = images
         .iter()
-        .cloned()
-        .chain(std::iter::repeat(images[0].clone()).take(batch_size - images.len()))
+        .map(|image| image.deref().view())
+        .cycle()
+        .take(batch_size)
         .collect::<Vec<_>>();
-    let input = InputTensor::from_array(ndarray::concatenate(Axis(0), &images).unwrap());
+    let input = InputTensor::from_array(ndarray::stack(Axis(0), &batch_images).unwrap().into_dyn());
     let outputs = session.run(vec![input]).unwrap();
     outputs
         .into_iter()
+        .take(images.len() * 4)
         .tuples()
-        .map(|(bboxes, labels, scores, _)| {
+        .map(|(bboxes, labels, scores, masks)| {
             let bboxes = bboxes
                 .try_extract::<f32>()
                 .unwrap()
@@ -59,20 +66,16 @@ fn do_inference(
                 .to_owned()
                 .into_dimensionality::<Ix1>()
                 .unwrap();
+            let masks = masks
+                .try_extract::<f32>()
+                .unwrap()
+                .view()
+                .to_owned()
+                .into_dimensionality::<Ix4>()
+                .unwrap()
+                .remove_axis(Axis(1));
 
-            Predictions(
-                izip!(
-                    bboxes.outer_iter(),
-                    labels.to_vec().iter(),
-                    scores.to_vec().iter()
-                )
-                .map(|(bbox, &label, &score)| Prediction {
-                    bbox: bbox.to_vec().try_into().unwrap(),
-                    label,
-                    score,
-                })
-                .collect(),
-            )
+            (bboxes, labels, scores, masks)
         })
         .collect()
 }
@@ -80,25 +83,38 @@ fn do_inference(
 pub async fn inference_worker(
     session: Session,
     batch_size: usize,
-    mut image_rx: Receiver<(Image, String)>,
-    prediction_tx: UnboundedSender<(Predictions, String)>,
+    mut image_rx: Receiver<(ChimpImage, Job)>,
+    prediction_tx: UnboundedSender<(BBoxes, Labels, Scores, Masks, Job)>,
 ) {
-    image_rx
-        .recv()
-        .await
-        .iter()
-        .map(|(image, predictions_channel)| (image.view(), predictions_channel))
-        .chunks(batch_size)
-        .into_iter()
-        .for_each(|jobs| {
-            let (images, prediction_channels) = jobs.into_iter().unzip::<_, _, Vec<_>, Vec<_>>();
-            let predictions = do_inference(&session, &images, batch_size);
-            izip!(predictions.into_iter(), prediction_channels.into_iter()).for_each(
-                |(predictions, prediction_channel)| {
-                    prediction_tx
-                        .send((predictions, prediction_channel.clone()))
-                        .unwrap()
-                },
-            )
-        });
+    let mut images = Vec::new();
+    let mut jobs = Vec::<Job>::new();
+    loop {
+        let (image, job) = image_rx.recv().await.unwrap();
+        println!("Got image for job: {job:?}");
+        images.push(image);
+        jobs.push(job);
+        while images.len() < batch_size {
+            match image_rx.try_recv() {
+                Ok((image, job)) => {
+                    images.push(image);
+                    jobs.push(job);
+                    Ok(())
+                }
+                Err(TryRecvError::Empty) => break,
+                Err(TryRecvError::Disconnected) => Err(TryRecvError::Disconnected),
+            }
+            .unwrap();
+        }
+        println!("Performing inference on {} images", images.len());
+        let predictions = do_inference(&session, &images, batch_size);
+        izip!(predictions.into_iter(), jobs.iter()).for_each(
+            |((bboxes, labels, scores, masks), job)| {
+                prediction_tx
+                    .send((bboxes, labels, scores, masks, job.clone()))
+                    .unwrap();
+            },
+        );
+        images.clear();
+        jobs.clear();
+    }
 }
