@@ -31,7 +31,7 @@ struct Cli {
     rabbitmq_channel: String,
 }
 
-#[tokio::main(flavor = "multi_thread", worker_threads = 4)]
+#[tokio::main]
 async fn main() {
     dotenvy::dotenv().ok();
     let args = Cli::parse();
