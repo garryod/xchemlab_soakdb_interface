@@ -1,5 +1,3 @@
-use std::ops::Deref;
-
 use crate::image_loading::WellImage;
 use chimp_protocol::{Circle, Job, Point};
 use opencv::{
@@ -7,6 +5,7 @@ use opencv::{
     imgproc::{hough_circles, HOUGH_GRADIENT},
     prelude::MatTraitConst,
 };
+use std::ops::Deref;
 use tokio::sync::mpsc::UnboundedSender;
 
 pub async fn find_well_center(
@@ -15,18 +14,18 @@ pub async fn find_well_center(
     well_location_tx: UnboundedSender<(Circle, Job)>,
 ) {
     println!("Finding Well Center for {job:?}");
-    let max_side = *image.deref().mat_size().iter().max().unwrap();
+    let min_side = *image.deref().mat_size().iter().min().unwrap();
     let mut circles = Vector::<Vec4f>::new();
     hough_circles(
         &*image,
         &mut circles,
         HOUGH_GRADIENT,
+        4.0,
         1.0,
-        1.0,
-        10.0,
-        10.0,
-        max_side / 2,
-        max_side,
+        100.0,
+        100.0,
+        min_side * 3 / 8,
+        min_side / 2,
     )
     .unwrap();
     let well_location = circles
