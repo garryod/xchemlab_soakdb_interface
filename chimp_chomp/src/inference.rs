@@ -90,7 +90,6 @@ pub async fn inference_worker(
     let mut jobs = Vec::<Job>::new();
     loop {
         let (image, job) = image_rx.recv().await.unwrap();
-        println!("Got image for job: {job:?}");
         images.push(image);
         jobs.push(job);
         while images.len() < batch_size {
@@ -105,7 +104,7 @@ pub async fn inference_worker(
             }
             .unwrap();
         }
-        println!("Performing inference on {} images", images.len());
+        println!("CHiMP Inference ({}): {:?}", images.len(), jobs);
         let predictions = do_inference(&session, &images, batch_size);
         izip!(predictions.into_iter(), jobs.iter()).for_each(
             |((bboxes, labels, scores, masks), job)| {
