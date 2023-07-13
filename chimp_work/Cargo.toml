@@ -1,0 +1,16 @@
+[package]
+name = "chimp_work"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+chimp_protocol = { path = "../chimp_protocol" }
+clap = { workspace = true }
+dotenvy = { workspace = true }
+futures-lite = "1.13.0"
+lapin = { version = "2.2.1", default-features = false, features = [
+    "native-tls",
+] }
+tokio = { workspace = true, features = ["sync"] }
+url = { workspace = true }
+uuid = { workspace = true }

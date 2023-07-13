@@ -15,9 +15,10 @@ use crate::{
     well_centering::find_well_center,
 };
 use clap::Parser;
-use futures_lite::StreamExt;
-use std::{collections::HashMap, path::PathBuf};
-use tokio::{select, task::JoinSet};
+use futures::{future::Either, StreamExt};
+use futures_timer::Delay;
+use std::{collections::HashMap, path::PathBuf, time::Duration};
+use tokio::{select, spawn, task::JoinSet};
 use url::Url;
 
 #[derive(Debug, Parser)]
@@ -29,6 +30,9 @@ struct Cli {
     rabbitmq_url: Url,
     /// The RabbitMQ channel on which jobs are assigned.
     rabbitmq_channel: String,
+    /// The duration (in milliseconds) to wait after completing all jobs before shutting down.
+    #[arg(long)]
+    timeout: Option<u64>,
 }
 
 #[tokio::main]
@@ -55,19 +59,25 @@ async fn main() {
     let (prediction_tx, mut prediction_rx) = tokio::sync::mpsc::unbounded_channel();
     let (contents_tx, mut contents_rx) = tokio::sync::mpsc::unbounded_channel();
 
-    let mut tasks = JoinSet::new();
-
-    tasks.spawn(inference_worker(
+    spawn(inference_worker(
         session,
         batch_size,
         chimp_image_rx,
         prediction_tx,
     ));
 
+    let mut tasks = JoinSet::new();
+
     let mut well_locations = HashMap::new();
     let mut well_contents = HashMap::new();
 
     loop {
+        let timeout = if let Some(timeout) = args.timeout {
+            Either::Left(Delay::new(Duration::from_millis(timeout)))
+        } else {
+            Either::Right(std::future::pending())
+        };
+
         select! {
             biased;
 
@@ -97,6 +107,11 @@ async fn main() {
                 } else {
                     well_contents.insert(job.id, contents);
                 }
+            }
+
+            _ = timeout => {
+                println!("Stopping: No jobs processed for {}ms", args.timeout.unwrap());
+                break;
             }
 
             else => break

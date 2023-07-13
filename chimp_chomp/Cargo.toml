@@ -8,7 +8,8 @@ chimp_protocol = { path = "../chimp_protocol" }
 clap = { workspace = true }
 derive_more = { workspace = true }
 dotenvy = { workspace = true }
-futures-lite = { version = "1.13.0" }
+futures = { version = "0.3.28" }
+futures-timer = { version = "3.0.2" }
 itertools = { workspace = true }
 lapin = { version = "2.2.1", default-features = false, features = [
     "native-tls",
