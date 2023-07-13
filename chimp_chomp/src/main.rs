@@ -16,7 +16,7 @@ use crate::{
 };
 use chimp_protocol::{Circle, Job};
 use clap::Parser;
-use futures::{future::Either, StreamExt};
+use futures::future::Either;
 use futures_timer::Delay;
 use postprocessing::Contents;
 use std::{collections::HashMap, path::PathBuf, time::Duration};
@@ -59,7 +59,7 @@ fn main() {
         let rabbitmq_client = setup_rabbitmq_client(args.rabbitmq_url).await.unwrap();
         let job_channel = rabbitmq_client.create_channel().await.unwrap();
         let response_channel = rabbitmq_client.create_channel().await.unwrap();
-        let mut job_consumer = setup_job_consumer(job_channel, args.rabbitmq_channel)
+        let job_consumer = setup_job_consumer(job_channel, args.rabbitmq_channel)
             .await
             .unwrap();
     
@@ -108,8 +108,9 @@ fn main() {
                     }
                 }
     
-                Some(delivery) = job_consumer.next() =>  {
-                    tasks.spawn(consume_job(delivery, input_width, input_height, chimp_image_tx.clone(), well_image_tx.clone()));
+                chimp_permit = chimp_image_tx.clone().reserve_owned() => {
+                    let chimp_permit = chimp_permit.unwrap();
+                    tasks.spawn(consume_job(job_consumer.clone(), input_width, input_height, chimp_permit, well_image_tx.clone()));
                 }
     
                 Some((well_image, job)) = well_image_rx.recv() =>  {

@@ -3,13 +3,13 @@ use crate::{
     postprocessing::Contents,
 };
 use chimp_protocol::{Circle, Job, Response};
+use futures::StreamExt;
 use lapin::{
-    message::Delivery,
     options::{BasicAckOptions, BasicConsumeOptions, BasicPublishOptions},
     types::FieldTable,
     BasicProperties, Channel, Connection, Consumer,
 };
-use tokio::sync::mpsc::Sender;
+use tokio::sync::mpsc::{OwnedPermit, Sender};
 use url::Url;
 use uuid::Uuid;
 
@@ -34,23 +34,20 @@ pub async fn setup_job_consumer(
 }
 
 pub async fn consume_job(
-    delivery: Result<Delivery, lapin::Error>,
+    mut consumer: Consumer,
     input_width: u32,
     input_height: u32,
-    chimp_image_tx: Sender<(ChimpImage, Job)>,
+    chimp_permit: OwnedPermit<(ChimpImage, Job)>,
     well_image_tx: Sender<(WellImage, Job)>,
 ) {
-    let delievry = delivery.unwrap();
-    delievry.ack(BasicAckOptions::default()).await.unwrap();
+    let delivery = consumer.next().await.unwrap().unwrap();
+    delivery.ack(BasicAckOptions::default()).await.unwrap();
 
-    let job = Job::from_slice(&delievry.data).unwrap();
+    let job = Job::from_slice(&delivery.data).unwrap();
     println!("Consumed Job: {job:?}");
     let (chimp_image, well_image) = load_image(job.file.clone(), input_width, input_height);
 
-    chimp_image_tx
-        .send((chimp_image, job.clone()))
-        .await
-        .unwrap();
+    chimp_permit.send((chimp_image, job.clone()));
     well_image_tx.send((well_image, job)).await.unwrap();
 }
 
