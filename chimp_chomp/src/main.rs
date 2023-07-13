@@ -14,9 +14,11 @@ use crate::{
     postprocessing::postprocess_inference,
     well_centering::find_well_center,
 };
+use chimp_protocol::{Circle, Job};
 use clap::Parser;
 use futures::{future::Either, StreamExt};
 use futures_timer::Delay;
+use postprocessing::Contents;
 use std::{collections::HashMap, path::PathBuf, time::Duration};
 use tokio::{select, spawn, task::JoinSet};
 use url::Url;
@@ -55,9 +57,10 @@ async fn main() {
 
     let (chimp_image_tx, chimp_image_rx) = tokio::sync::mpsc::channel(batch_size);
     let (well_image_tx, mut well_image_rx) = tokio::sync::mpsc::channel(batch_size);
-    let (well_location_tx, mut well_location_rx) = tokio::sync::mpsc::unbounded_channel();
+    let (well_location_tx, mut well_location_rx) =
+        tokio::sync::mpsc::unbounded_channel::<(Circle, Job)>();
     let (prediction_tx, mut prediction_rx) = tokio::sync::mpsc::unbounded_channel();
-    let (contents_tx, mut contents_rx) = tokio::sync::mpsc::unbounded_channel();
+    let (contents_tx, mut contents_rx) = tokio::sync::mpsc::unbounded_channel::<(Contents, Job)>();
 
     spawn(inference_worker(
         session,
@@ -81,18 +84,6 @@ async fn main() {
         select! {
             biased;
 
-            Some(delivery) = job_consumer.next() =>  {
-                tasks.spawn(consume_job(delivery, input_width, input_height, chimp_image_tx.clone(), well_image_tx.clone()));
-            }
-
-            Some((well_image, job)) = well_image_rx.recv() =>  {
-                tasks.spawn(find_well_center(well_image, job, well_location_tx.clone()));
-            }
-
-            Some((bboxes, labels, _, masks, job)) = prediction_rx.recv() => {
-                tasks.spawn(postprocess_inference(bboxes, labels, masks, job, contents_tx.clone()));
-            }
-
             Some((well_location, job)) = well_location_rx.recv() => {
                 if let Some(contents) = well_contents.remove(&job.id) {
                     tasks.spawn(produce_response(contents, well_location, job, response_channel.clone()));
@@ -107,6 +98,18 @@ async fn main() {
                 } else {
                     well_contents.insert(job.id, contents);
                 }
+            }
+
+            Some(delivery) = job_consumer.next() =>  {
+                tasks.spawn(consume_job(delivery, input_width, input_height, chimp_image_tx.clone(), well_image_tx.clone()));
+            }
+
+            Some((well_image, job)) = well_image_rx.recv() =>  {
+                tasks.spawn(find_well_center(well_image, job, well_location_tx.clone()));
+            }
+
+            Some((bboxes, labels, _, masks, job)) = prediction_rx.recv() => {
+                tasks.spawn(postprocess_inference(bboxes, labels, masks, job, contents_tx.clone()));
             }
 
             _ = timeout => {
