@@ -1,0 +1,29 @@
+[package]
+name = "chimp_chomp"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+chimp_protocol = { path = "../chimp_protocol" }
+clap = { workspace = true }
+derive_more = { workspace = true }
+dotenvy = { workspace = true }
+futures = { version = "0.3.28" }
+futures-timer = { version = "3.0.2" }
+itertools = { workspace = true }
+lapin = { version = "2.2.1", default-features = false, features = [
+    "native-tls",
+] }
+ndarray = { version = "0.15.6" }
+opencv = { version = "0.82.1", default-features = false, features = [
+    "imgproc",
+    "imgcodecs",
+] }
+ort = { version = "1.14.8", default-features = false, features = [
+    "download-binaries",
+    "tensorrt",
+    "copy-dylibs",
+] }
+tokio = { workspace = true, features = ["sync"] }
+url = { workspace = true }
+uuid = { workspace = true }
